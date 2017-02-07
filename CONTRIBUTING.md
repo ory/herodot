@@ -122,4 +122,4 @@ Whether you are a regular contributor or a newcomer, we care about making this c
 * Private harassment is also unacceptable. No matter who you are, if you feel you have been or are being harassed or made uncomfortable by a community member, please contact one of the channel ops or a member of the Herodot core team immediately.
 * Likewise any spamming, trolling, flaming, baiting or other attention-stealing behaviour is not welcome.
 
-We welcome discussion about creating a welcoming, safe, and productive environment for the community. If you have any questions, feedback, or concerns [please let us know](https://gitter.im/ory-am/Herodot).
+We welcome discussion about creating a welcoming, safe, and productive environment for the community. If you have any questions, feedback, or concerns [please let us know](https://gitter.im/ory/Herodot).
