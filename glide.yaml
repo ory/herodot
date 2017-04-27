@@ -1,0 +1,14 @@
+package: github.com/ory-am/herodot
+import:
+- package: github.com/Sirupsen/logrus
+  version: ~0.11.5
+- package: github.com/pkg/errors
+  version: ~0.8.0
+testImport:
+- package: github.com/gorilla/mux
+  version: ~1.3.0
+- package: github.com/stretchr/testify
+  version: ~1.1.4
+  subpackages:
+  - assert
+  - require
