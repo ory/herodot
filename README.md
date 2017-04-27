@@ -1,5 +1,10 @@
 # herodot
 
+[![Build Status](https://travis-ci.org/ory/herodot.svg?branch=master)](https://travis-ci.org/ory/herodot)
+[![Coverage Status](https://coveralls.io/repos/github/ory/herodot/badge.svg?branch=master)](https://coveralls.io/github/ory/herodot?branch=master)
+
+---
+
 Herodot is a lightweight SDK for writing RESTful responses. You can compare it to [render](https://github.com/unrolled/render),
 although it currently supports only JSON.
 
