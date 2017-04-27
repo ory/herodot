@@ -10,45 +10,56 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/net/context"
 )
 
 var (
-	exampleError = &Error{
-		Name:          "not-found",
-		OriginalError: errors.New("Not found"),
-		StatusCode:    http.StatusNotFound,
-		Description:   "test",
+	exampleError = &statusCodeError{
+		statusCode: http.StatusNotFound,
+		error:      errors.New("foo"),
 	}
 )
 
+type statusCodeError struct {
+	error
+	statusCode int
+}
+
+func (e *statusCodeError) StatusCode() int {
+	return e.statusCode
+}
+
 func TestWriteError(t *testing.T) {
-	var j jsonError
+	for _, tc := range []error{
+		exampleError,
+		errors.WithStack(exampleError),
+	} {
+		var j jsonError
 
-	h := JSON{}
-	r := mux.NewRouter()
-	r.HandleFunc("/do", func(w http.ResponseWriter, r *http.Request) {
-		h.WriteError(context.Background(), w, r, errors.Wrap(exampleError, ""))
-	})
-	ts := httptest.NewServer(r)
+		h := &JSONWriter{}
+		r := mux.NewRouter()
+		r.HandleFunc("/do", func(w http.ResponseWriter, r *http.Request) {
+			r.Header.Set("X-Request-ID", "foo")
+			h.WriteError(w, r, tc)
+		})
+		ts := httptest.NewServer(r)
 
-	resp, err := http.Get(ts.URL + "/do")
-	require.Nil(t, err)
+		resp, err := http.Get(ts.URL + "/do")
+		require.Nil(t, err)
 
-	require.Nil(t, json.NewDecoder(resp.Body).Decode(&j))
-	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
-	assert.Equal(t, j.Description, exampleError.Description)
-	assert.Equal(t, j.StatusCode, exampleError.StatusCode)
-	assert.NotEmpty(t, j.RequestID)
+		require.Nil(t, json.NewDecoder(resp.Body).Decode(&j))
+		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+		assert.Equal(t, "foo", j.RequestID)
+	}
 }
 
 func TestWriteErrorCode(t *testing.T) {
 	var j jsonError
 
-	h := JSON{}
+	h := &JSONWriter{}
 	r := mux.NewRouter()
 	r.HandleFunc("/do", func(w http.ResponseWriter, r *http.Request) {
-		h.WriteErrorCode(context.Background(), w, r, http.StatusBadRequest, errors.Wrap(exampleError, ""))
+		r.Header.Set("X-Request-ID", "foo")
+		h.WriteErrorCode(w, r, http.StatusBadRequest, errors.Wrap(exampleError, ""))
 	})
 	ts := httptest.NewServer(r)
 
@@ -57,17 +68,16 @@ func TestWriteErrorCode(t *testing.T) {
 
 	require.Nil(t, json.NewDecoder(resp.Body).Decode(&j))
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
-	assert.Equal(t, j.Description, exampleError.Description)
-	assert.NotEmpty(t, j.RequestID)
+	assert.Equal(t, "foo", j.RequestID)
 }
 
 func TestWriteJSON(t *testing.T) {
 	foo := map[string]string{"foo": "bar"}
 
-	h := JSON{}
+	h := &JSONWriter{}
 	r := mux.NewRouter()
 	r.HandleFunc("/do", func(w http.ResponseWriter, r *http.Request) {
-		h.Write(context.Background(), w, r, &foo)
+		h.Write(w, r, &foo)
 	})
 	ts := httptest.NewServer(r)
 
@@ -82,10 +92,10 @@ func TestWriteJSON(t *testing.T) {
 func TestWriteCreatedJSON(t *testing.T) {
 	foo := map[string]string{"foo": "bar"}
 
-	h := JSON{}
+	h := &JSONWriter{}
 	r := mux.NewRouter()
 	r.HandleFunc("/do", func(w http.ResponseWriter, r *http.Request) {
-		h.WriteCreated(context.Background(), w, r, "/new", &foo)
+		h.WriteCreated(w, r, "/new", &foo)
 	})
 	ts := httptest.NewServer(r)
 
@@ -102,10 +112,10 @@ func TestWriteCreatedJSON(t *testing.T) {
 func TestWriteCodeJSON(t *testing.T) {
 	foo := map[string]string{"foo": "bar"}
 
-	h := JSON{}
+	h := &JSONWriter{}
 	r := mux.NewRouter()
 	r.HandleFunc("/do", func(w http.ResponseWriter, r *http.Request) {
-		h.WriteCode(context.Background(), w, r, 400, &foo)
+		h.WriteCode(w, r, 400, &foo)
 	})
 	ts := httptest.NewServer(r)
 
