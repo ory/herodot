@@ -1,7 +1,7 @@
 package herodot
 
 import (
-"net/http"
+	"net/http"
 )
 
 // StatusCodeCarrier can be implemented in an error to support setting status codes in the error itself.
