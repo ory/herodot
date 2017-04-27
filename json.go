@@ -13,15 +13,38 @@ type jsonError struct {
 	ErrorMessage string `json:"error_message"`
 }
 
+type reporter func(w http.ResponseWriter, r *http.Request, code int, err error)
+
 // JSONWriter outputs JSON.
 type JSONWriter struct {
-	logger logrus.FieldLogger
+	logger   logrus.FieldLogger
+	Reporter func(args ...interface{}) reporter
 }
 
 // NewJSONWriter returns a JSONWriter
 func NewJSONWriter(logger logrus.FieldLogger) *JSONWriter {
-	return &JSONWriter{
+	writer := &JSONWriter{
 		logger: logger,
+	}
+
+	writer.Reporter = writer.reporter
+	return writer
+}
+
+func (h *JSONWriter) reporter(args ...interface{}) reporter {
+	return func(w http.ResponseWriter, r *http.Request, code int, err error) {
+		if h.logger == nil {
+			h.logger = logrus.StandardLogger()
+			h.logger.Warning("No logger was set in JSONWriter, defaulting to standard logger.")
+		}
+
+		h.logger.
+			WithField("request-id", r.Header.Get("X-Request-ID")).
+			WithField("writer", "JSON").
+			WithField("trace", getErrorTrace(err)).
+			WithField("status_code", code).
+			WithError(err).
+			Error(args...)
 	}
 }
 
@@ -80,16 +103,8 @@ func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code
 		code = http.StatusInternalServerError
 	}
 
-	if h.logger == nil {
-		h.logger = logrus.StandardLogger()
-		h.logger.Warning("No logger was set in JSONWriter, defaulting to standard logger.")
-	}
-
 	// All errors land here, so it's a really good idea to do the logging here as well!
-	h.logger.
-		WithField("request-id", r.Header.Get("X-Request-ID")).
-		WithField("writer", "JSON").
-		WithField("trace", getErrorTrace(err)).Error(err.Error())
+	h.Reporter("An error occurred while handling a request")(w, r, code, err)
 
 	w.WriteHeader(code)
 	w.Header().Set("Content-Type", "application/json")
@@ -100,11 +115,6 @@ func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code
 		ErrorMessage: err.Error(),
 	}); err != nil {
 		// There was an error, but there's actually not a lot we can do except log that this happened.
-		h.logger.
-			WithField("request-id", r.Header.Get("X-Request-ID")).
-			WithField("writer", "JSON").
-			WithField("trace", getErrorTrace(err)).
-			WithError(err).
-			Error("Could not write jsonError to response writer.")
+		h.Reporter("Could not write jsonError to response writer")(w, r, code, err)
 	}
 }

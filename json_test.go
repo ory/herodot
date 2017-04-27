@@ -35,7 +35,7 @@ func TestWriteError(t *testing.T) {
 	} {
 		var j jsonError
 
-		h := &JSONWriter{}
+		h := NewJSONWriter(nil)
 		r := mux.NewRouter()
 		r.HandleFunc("/do", func(w http.ResponseWriter, r *http.Request) {
 			r.Header.Set("X-Request-ID", "foo")
@@ -55,7 +55,7 @@ func TestWriteError(t *testing.T) {
 func TestWriteErrorCode(t *testing.T) {
 	var j jsonError
 
-	h := &JSONWriter{}
+	h := NewJSONWriter(nil)
 	r := mux.NewRouter()
 	r.HandleFunc("/do", func(w http.ResponseWriter, r *http.Request) {
 		r.Header.Set("X-Request-ID", "foo")
@@ -74,7 +74,7 @@ func TestWriteErrorCode(t *testing.T) {
 func TestWriteJSON(t *testing.T) {
 	foo := map[string]string{"foo": "bar"}
 
-	h := &JSONWriter{}
+	h := NewJSONWriter(nil)
 	r := mux.NewRouter()
 	r.HandleFunc("/do", func(w http.ResponseWriter, r *http.Request) {
 		h.Write(w, r, &foo)
@@ -92,7 +92,7 @@ func TestWriteJSON(t *testing.T) {
 func TestWriteCreatedJSON(t *testing.T) {
 	foo := map[string]string{"foo": "bar"}
 
-	h := &JSONWriter{}
+	h := NewJSONWriter(nil)
 	r := mux.NewRouter()
 	r.HandleFunc("/do", func(w http.ResponseWriter, r *http.Request) {
 		h.WriteCreated(w, r, "/new", &foo)
@@ -112,7 +112,7 @@ func TestWriteCreatedJSON(t *testing.T) {
 func TestWriteCodeJSON(t *testing.T) {
 	foo := map[string]string{"foo": "bar"}
 
-	h := &JSONWriter{}
+	h := NewJSONWriter(nil)
 	r := mux.NewRouter()
 	r.HandleFunc("/do", func(w http.ResponseWriter, r *http.Request) {
 		h.WriteCode(w, r, 400, &foo)
