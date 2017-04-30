@@ -23,12 +23,28 @@ var (
 			map[string]interface{}{"foo": "bar"},
 		},
 	}
+	onlyStatusCodeError = &statusCodeError{statusCode: http.StatusNotFound, error: errors.New("foo")}
 )
 
+type statusCodeError struct {
+	statusCode int
+	error
+}
+
+func (s *statusCodeError) StatusCode() int {
+	return s.statusCode
+}
+
 func TestWriteError(t *testing.T) {
-	for k, tc := range []error{
-		exampleError,
-		errors.WithStack(exampleError),
+	for k, tc := range []struct {
+		err    error
+		expect *richError
+	}{
+		{err: exampleError, expect: exampleError},
+		{err: errors.WithStack(exampleError), expect: exampleError},
+		{err: onlyStatusCodeError, expect: &richError{CodeField: http.StatusNotFound, ErrorField: "foo"}},
+		{err: errors.WithStack(onlyStatusCodeError), expect: &richError{CodeField: http.StatusNotFound, ErrorField: "foo"}},
+		{err: errors.New("foo"), expect: &richError{CodeField: http.StatusInternalServerError, ErrorField: "foo"}},
 	} {
 		t.Run(fmt.Sprintf("case=%d", k), func(t *testing.T) {
 			j := &jsonError{
@@ -39,7 +55,7 @@ func TestWriteError(t *testing.T) {
 			r := mux.NewRouter()
 			r.HandleFunc("/do", func(w http.ResponseWriter, r *http.Request) {
 				r.Header.Set("X-Request-ID", "foo")
-				h.WriteError(w, r, tc)
+				h.WriteError(w, r, tc.err)
 			})
 			ts := httptest.NewServer(r)
 
@@ -48,10 +64,12 @@ func TestWriteError(t *testing.T) {
 			defer resp.Body.Close()
 
 			require.Nil(t, json.NewDecoder(resp.Body).Decode(j))
-			assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+			assert.Equal(t, tc.expect.StatusCode(), resp.StatusCode)
 			assert.Equal(t, "foo", j.Error.RequestID())
-			assert.Equal(t, "some-status", j.Error.Status())
-			assert.Equal(t, "some-reason", j.Error.Reason())
+			assert.Equal(t, tc.expect.Status(), j.Error.Status())
+			assert.Equal(t, tc.expect.StatusCode(), j.Error.StatusCode())
+			assert.Equal(t, tc.expect.Reason(), j.Error.Reason())
+			assert.Equal(t, tc.expect.Error(), j.Error.Error())
 		})
 	}
 }
