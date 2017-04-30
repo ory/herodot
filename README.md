@@ -6,8 +6,9 @@
 ---
 
 Herodot is a lightweight SDK for writing RESTful responses. You can compare it to [render](https://github.com/unrolled/render),
-although it currently supports only JSON. The error model implements the well established
-[Google API Design Guide](https://cloud.google.com/apis/design/errors).
+but with easier error handling. The error model implements the well established
+[Google API Design Guide](https://cloud.google.com/apis/design/errors). Herodot currently supports only JSON responses
+but can be extended easily.
 
 Herodot is used by [Hydra](https://github.com/ory/hydra) and servers millions of requests already.
 
