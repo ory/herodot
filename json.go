@@ -9,8 +9,7 @@ import (
 )
 
 type jsonError struct {
-	RequestID    string `json:"request_id"`
-	ErrorMessage string `json:"error_message"`
+	Error *richError `json:"error"`
 }
 
 type reporter func(w http.ResponseWriter, r *http.Request, code int, err error)
@@ -38,11 +37,15 @@ func (h *JSONWriter) reporter(args ...interface{}) reporter {
 			h.logger.Warning("No logger was set in JSONWriter, defaulting to standard logger.")
 		}
 
+		richError := assertRichError(err)
 		h.logger.
 			WithField("request-id", r.Header.Get("X-Request-ID")).
 			WithField("writer", "JSON").
 			WithField("trace", getErrorTrace(err)).
-			WithField("status_code", code).
+			WithField("code", code).
+			WithField("reason", richError.Reason()).
+			WithField("details", richError.Details()).
+			WithField("status", richError.Status()).
 			WithError(err).
 			Error(args...)
 	}
@@ -92,15 +95,17 @@ func (h *JSONWriter) WriteError(w http.ResponseWriter, r *http.Request, err erro
 		return
 	}
 
-	// Otherwise it's 500 per default
-	h.WriteErrorCode(w, r, http.StatusInternalServerError, err)
+	h.WriteErrorCode(w, r, assertRichError(err).StatusCode(), err)
 	return
 }
 
 // WriteErrorCode writes an error to ResponseWriter and forces an error code.
 func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code int, err error) {
+	richError := assertRichError(err)
+	richError.setFallbackRequestID(r.Header.Get("X-Request-ID"))
+
 	if code == 0 {
-		code = http.StatusInternalServerError
+		code = richError.CodeField
 	}
 
 	// All errors land here, so it's a really good idea to do the logging here as well!
@@ -109,11 +114,7 @@ func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code
 	w.WriteHeader(code)
 	w.Header().Set("Content-Type", "application/json")
 
-	if err := json.NewEncoder(w).Encode(&jsonError{
-		// This need to be set by API Gateway
-		RequestID:    r.Header.Get("X-Request-ID"),
-		ErrorMessage: err.Error(),
-	}); err != nil {
+	if err := json.NewEncoder(w).Encode(&jsonError{Error: richError}); err != nil {
 		// There was an error, but there's actually not a lot we can do except log that this happened.
 		h.Reporter("Could not write jsonError to response writer")(w, r, code, err)
 	}
