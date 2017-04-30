@@ -6,7 +6,8 @@
 ---
 
 Herodot is a lightweight SDK for writing RESTful responses. You can compare it to [render](https://github.com/unrolled/render),
-although it currently supports only JSON.
+although it currently supports only JSON. The error model implements the well established
+[Google API Design Guide](https://cloud.google.com/apis/design/errors).
 
 Herodot is used by [Hydra](https://github.com/ory/hydra) and servers millions of requests already.
 
@@ -19,7 +20,7 @@ Herodot is versioned using [glide](https://github.com/Masterminds/glide) and wor
 go get -u github.com/ory/herodot
 ```
 
-## Examples
+## Usage
 
 Using Herodot is straight forward, these examples will help you getting started.
 
@@ -82,3 +83,27 @@ func GetHandlerWithErrorCode(rw http.ResponseWriter, r *http.Request) {
     // ...
 }
 ```
+
+### Errors
+
+Herodot implements the error model implements the well established
+[Google API Design Guide](https://cloud.google.com/apis/design/errors). Additionally, fields `request` and `reason` are
+available. The output of such an error looks like this:
+
+```json
+{
+  "error": {
+    "code": 404,
+    "status": "some-status",
+    "request": "foo",
+    "reason": "some-reason",
+    "details": [
+      { "foo":"bar" }
+    ],
+    "message":"foo"
+  }
+}
+```
+
+To add context to your errors, implement `herodot.ErrorContextCarrier`. If you only want to set the status code of errors
+implement `herodot.StatusCodeCarrier`.

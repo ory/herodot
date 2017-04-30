@@ -4,12 +4,6 @@ import (
 	"net/http"
 )
 
-// StatusCodeCarrier can be implemented in an error to support setting status codes in the error itself.
-type StatusCodeCarrier interface {
-	// StatusCode returns the status code of this error.
-	StatusCode() int
-}
-
 // Writer is a helper to write arbitrary data to a ResponseWriter
 type Writer interface {
 	// Write a response object to the ResponseWriter with status code 200.

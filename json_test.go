@@ -2,6 +2,7 @@ package herodot
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -13,42 +14,45 @@ import (
 )
 
 var (
-	exampleError = &statusCodeError{
-		statusCode: http.StatusNotFound,
-		error:      errors.New("foo"),
+	exampleError = &richError{
+		CodeField:   http.StatusNotFound,
+		ErrorField:  errors.New("foo").Error(),
+		ReasonField: "some-reason",
+		StatusField: "some-status",
+		DetailsField: []map[string]interface{}{
+			map[string]interface{}{"foo": "bar"},
+		},
 	}
 )
 
-type statusCodeError struct {
-	error
-	statusCode int
-}
-
-func (e *statusCodeError) StatusCode() int {
-	return e.statusCode
-}
-
 func TestWriteError(t *testing.T) {
-	for _, tc := range []error{
+	for k, tc := range []error{
 		exampleError,
 		errors.WithStack(exampleError),
 	} {
-		var j jsonError
+		t.Run(fmt.Sprintf("case=%d", k), func(t *testing.T) {
+			j := &jsonError{
+				Error: &richError{},
+			}
 
-		h := NewJSONWriter(nil)
-		r := mux.NewRouter()
-		r.HandleFunc("/do", func(w http.ResponseWriter, r *http.Request) {
-			r.Header.Set("X-Request-ID", "foo")
-			h.WriteError(w, r, tc)
+			h := NewJSONWriter(nil)
+			r := mux.NewRouter()
+			r.HandleFunc("/do", func(w http.ResponseWriter, r *http.Request) {
+				r.Header.Set("X-Request-ID", "foo")
+				h.WriteError(w, r, tc)
+			})
+			ts := httptest.NewServer(r)
+
+			resp, err := http.Get(ts.URL + "/do")
+			require.Nil(t, err)
+			defer resp.Body.Close()
+
+			require.Nil(t, json.NewDecoder(resp.Body).Decode(j))
+			assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+			assert.Equal(t, "foo", j.Error.RequestID())
+			assert.Equal(t, "some-status", j.Error.Status())
+			assert.Equal(t, "some-reason", j.Error.Reason())
 		})
-		ts := httptest.NewServer(r)
-
-		resp, err := http.Get(ts.URL + "/do")
-		require.Nil(t, err)
-
-		require.Nil(t, json.NewDecoder(resp.Body).Decode(&j))
-		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
-		assert.Equal(t, "foo", j.RequestID)
 	}
 }
 
@@ -68,7 +72,7 @@ func TestWriteErrorCode(t *testing.T) {
 
 	require.Nil(t, json.NewDecoder(resp.Body).Decode(&j))
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
-	assert.Equal(t, "foo", j.RequestID)
+	assert.Equal(t, "foo", j.Error.RequestID())
 }
 
 func TestWriteJSON(t *testing.T) {
