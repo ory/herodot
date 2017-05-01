@@ -15,8 +15,6 @@ type stackTracer interface {
 func getErrorTrace(err error) string {
 	if e, ok := err.(stackTracer); ok {
 		return fmt.Sprintf("Stack trace: %+v", e.StackTrace())
-	} else if e, ok := errors.Cause(err).(stackTracer); ok {
-		return fmt.Sprintf("Stack trace: %+v", e.StackTrace())
 	}
 
 	return fmt.Sprintf("Stack trace could not be recovered from error type %s", reflect.TypeOf(err))

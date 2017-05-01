@@ -2,6 +2,7 @@ package herodot
 
 import (
 	"encoding/json"
+	nativeerr "errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -45,6 +46,8 @@ func TestWriteError(t *testing.T) {
 		{err: onlyStatusCodeError, expect: &richError{CodeField: http.StatusNotFound, ErrorField: "foo"}},
 		{err: errors.WithStack(onlyStatusCodeError), expect: &richError{CodeField: http.StatusNotFound, ErrorField: "foo"}},
 		{err: errors.New("foo"), expect: &richError{CodeField: http.StatusInternalServerError, ErrorField: "foo"}},
+		{err: errors.WithStack(errors.New("foo1")), expect: &richError{CodeField: http.StatusInternalServerError, ErrorField: "foo1"}},
+		{err: nativeerr.New("foo1"), expect: &richError{CodeField: http.StatusInternalServerError, ErrorField: "foo1"}},
 	} {
 		t.Run(fmt.Sprintf("case=%d", k), func(t *testing.T) {
 			j := &jsonError{
@@ -81,7 +84,7 @@ func TestWriteErrorCode(t *testing.T) {
 	r := mux.NewRouter()
 	r.HandleFunc("/do", func(w http.ResponseWriter, r *http.Request) {
 		r.Header.Set("X-Request-ID", "foo")
-		h.WriteErrorCode(w, r, http.StatusBadRequest, errors.Wrap(exampleError, ""))
+		h.WriteErrorCode(w, r, 0, errors.Wrap(exampleError, ""))
 	})
 	ts := httptest.NewServer(r)
 
@@ -89,7 +92,7 @@ func TestWriteErrorCode(t *testing.T) {
 	require.Nil(t, err)
 
 	require.Nil(t, json.NewDecoder(resp.Body).Decode(&j))
-	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 	assert.Equal(t, "foo", j.Error.RequestID())
 }
 
@@ -148,4 +151,23 @@ func TestWriteCodeJSON(t *testing.T) {
 	require.Nil(t, json.NewDecoder(resp.Body).Decode(&result))
 	assert.Equal(t, foo["foo"], result["foo"])
 	assert.Equal(t, 400, resp.StatusCode)
+}
+
+func TestWriteCodeJSONDefault(t *testing.T) {
+	foo := map[string]string{"foo": "bar"}
+
+	h := NewJSONWriter(nil)
+	r := mux.NewRouter()
+	r.HandleFunc("/do", func(w http.ResponseWriter, r *http.Request) {
+		h.WriteCode(w, r, 0, &foo)
+	})
+	ts := httptest.NewServer(r)
+
+	resp, err := http.Get(ts.URL + "/do")
+	require.Nil(t, err)
+
+	result := map[string]string{}
+	require.Nil(t, json.NewDecoder(resp.Body).Decode(&result))
+	assert.Equal(t, foo["foo"], result["foo"])
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
