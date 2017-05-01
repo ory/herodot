@@ -60,7 +60,7 @@ func (h *JSONWriter) Write(w http.ResponseWriter, r *http.Request, e interface{}
 func (h *JSONWriter) WriteCode(w http.ResponseWriter, r *http.Request, code int, e interface{}) {
 	js, err := json.Marshal(e)
 	if err != nil {
-		h.WriteError(w, r, err)
+		h.WriteError(w, r, errors.WithStack(err))
 		return
 	}
 
@@ -116,6 +116,6 @@ func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code
 
 	if err := json.NewEncoder(w).Encode(&jsonError{Error: richError}); err != nil {
 		// There was an error, but there's actually not a lot we can do except log that this happened.
-		h.Reporter("Could not write jsonError to response writer")(w, r, code, err)
+		h.Reporter("Could not write jsonError to response writer")(w, r, code, errors.WithStack(err))
 	}
 }
