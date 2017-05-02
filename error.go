@@ -30,8 +30,6 @@ type ErrorContextCarrier interface {
 	Details() []map[string]interface{}
 }
 
-type richErrorDetails map[string]interface{}
-
 type richError struct {
 	CodeField    int                      `json:"code,omitempty"`
 	StatusField  string                   `json:"status,omitempty"`
