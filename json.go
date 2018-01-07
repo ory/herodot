@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/sirupsen/logrus"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 type jsonError struct {
@@ -111,8 +111,8 @@ func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code
 	// All errors land here, so it's a really good idea to do the logging here as well!
 	h.Reporter("An error occurred while handling a request")(w, r, code, err)
 
-	w.WriteHeader(code)
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
 
 	if err := json.NewEncoder(w).Encode(&jsonError{Error: richError}); err != nil {
 		// There was an error, but there's actually not a lot we can do except log that this happened.
