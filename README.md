@@ -1,5 +1,6 @@
 # herodot
 
+[![Join the chat at https://discord.gg/PAMQWkr](https://img.shields.io/badge/join-chat-00cc99.svg)](https://discord.gg/PAMQWkr)
 [![Build Status](https://travis-ci.org/ory/herodot.svg?branch=master)](https://travis-ci.org/ory/herodot)
 [![Coverage Status](https://coveralls.io/repos/github/ory/herodot/badge.svg?branch=master)](https://coveralls.io/github/ory/herodot?branch=master)
 
