@@ -28,7 +28,7 @@ import (
 )
 
 type jsonError struct {
-	Error *richError `json:"error"`
+	Error *DefaultError `json:"error"`
 }
 
 type reporter func(w http.ResponseWriter, r *http.Request, code int, err error)

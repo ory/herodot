@@ -49,7 +49,7 @@ type ErrorContextCarrier interface {
 	Details() []map[string]interface{}
 }
 
-type richError struct {
+type DefaultError struct {
 	CodeField    int                      `json:"code,omitempty"`
 	StatusField  string                   `json:"status,omitempty"`
 	RIDField     string                   `json:"request,omitempty"`
@@ -58,31 +58,31 @@ type richError struct {
 	ErrorField   string                   `json:"message"`
 }
 
-func (e *richError) Status() string {
+func (e *DefaultError) Status() string {
 	return e.StatusField
 }
 
-func (e *richError) Error() string {
+func (e *DefaultError) Error() string {
 	return e.ErrorField
 }
 
-func (e *richError) RequestID() string {
+func (e *DefaultError) RequestID() string {
 	return e.RIDField
 }
 
-func (e *richError) Reason() string {
+func (e *DefaultError) Reason() string {
 	return e.ReasonField
 }
 
-func (e *richError) Details() []map[string]interface{} {
+func (e *DefaultError) Details() []map[string]interface{} {
 	return e.DetailsField
 }
 
-func (e *richError) StatusCode() int {
+func (e *DefaultError) StatusCode() int {
 	return e.CodeField
 }
 
-func (e *richError) setFallbackRequestID(request string) {
+func (e *DefaultError) setFallbackRequestID(request string) {
 	if e.RIDField != "" {
 		return
 	}
@@ -90,9 +90,9 @@ func (e *richError) setFallbackRequestID(request string) {
 	e.RIDField = request
 }
 
-func assertRichError(err error) *richError {
+func assertRichError(err error) *DefaultError {
 	if e, ok := errors.Cause(err).(ErrorContextCarrier); ok {
-		return &richError{
+		return &DefaultError{
 			CodeField:    e.StatusCode(),
 			ReasonField:  e.Reason(),
 			RIDField:     e.RequestID(),
@@ -101,7 +101,7 @@ func assertRichError(err error) *richError {
 			StatusField:  e.Status(),
 		}
 	} else if e, ok := err.(ErrorContextCarrier); ok {
-		return &richError{
+		return &DefaultError{
 			CodeField:    e.StatusCode(),
 			ReasonField:  e.Reason(),
 			RIDField:     e.RequestID(),
@@ -110,20 +110,20 @@ func assertRichError(err error) *richError {
 			StatusField:  e.Status(),
 		}
 	} else if e, ok := err.(StatusCodeCarrier); ok {
-		return &richError{
+		return &DefaultError{
 			CodeField:    e.StatusCode(),
 			ErrorField:   err.Error(),
 			DetailsField: []map[string]interface{}{},
 		}
 	} else if e, ok := errors.Cause(err).(StatusCodeCarrier); ok {
-		return &richError{
+		return &DefaultError{
 			CodeField:    e.StatusCode(),
 			ErrorField:   err.Error(),
 			DetailsField: []map[string]interface{}{},
 		}
 	}
 
-	return &richError{
+	return &DefaultError{
 		ErrorField:   err.Error(),
 		CodeField:    http.StatusInternalServerError,
 		DetailsField: []map[string]interface{}{},
