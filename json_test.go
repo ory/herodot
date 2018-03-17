@@ -34,13 +34,13 @@ import (
 )
 
 var (
-	exampleError = &richError{
+	exampleError = &DefaultError{
 		CodeField:   http.StatusNotFound,
 		ErrorField:  errors.New("foo").Error(),
 		ReasonField: "some-reason",
 		StatusField: "some-status",
 		DetailsField: []map[string]interface{}{
-			map[string]interface{}{"foo": "bar"},
+			{"foo": "bar"},
 		},
 	}
 	onlyStatusCodeError = &statusCodeError{statusCode: http.StatusNotFound, error: errors.New("foo")}
@@ -58,19 +58,19 @@ func (s *statusCodeError) StatusCode() int {
 func TestWriteError(t *testing.T) {
 	for k, tc := range []struct {
 		err    error
-		expect *richError
+		expect *DefaultError
 	}{
 		{err: exampleError, expect: exampleError},
 		{err: errors.WithStack(exampleError), expect: exampleError},
-		{err: onlyStatusCodeError, expect: &richError{CodeField: http.StatusNotFound, ErrorField: "foo"}},
-		{err: errors.WithStack(onlyStatusCodeError), expect: &richError{CodeField: http.StatusNotFound, ErrorField: "foo"}},
-		{err: errors.New("foo"), expect: &richError{CodeField: http.StatusInternalServerError, ErrorField: "foo"}},
-		{err: errors.WithStack(errors.New("foo1")), expect: &richError{CodeField: http.StatusInternalServerError, ErrorField: "foo1"}},
-		{err: nativeerr.New("foo1"), expect: &richError{CodeField: http.StatusInternalServerError, ErrorField: "foo1"}},
+		{err: onlyStatusCodeError, expect: &DefaultError{CodeField: http.StatusNotFound, ErrorField: "foo"}},
+		{err: errors.WithStack(onlyStatusCodeError), expect: &DefaultError{CodeField: http.StatusNotFound, ErrorField: "foo"}},
+		{err: errors.New("foo"), expect: &DefaultError{CodeField: http.StatusInternalServerError, ErrorField: "foo"}},
+		{err: errors.WithStack(errors.New("foo1")), expect: &DefaultError{CodeField: http.StatusInternalServerError, ErrorField: "foo1"}},
+		{err: nativeerr.New("foo1"), expect: &DefaultError{CodeField: http.StatusInternalServerError, ErrorField: "foo1"}},
 	} {
 		t.Run(fmt.Sprintf("case=%d", k), func(t *testing.T) {
 			j := &jsonError{
-				Error: &richError{},
+				Error: &DefaultError{},
 			}
 
 			h := NewJSONWriter(nil)
