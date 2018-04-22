@@ -39,8 +39,8 @@ var (
 		ErrorField:  errors.New("foo").Error(),
 		ReasonField: "some-reason",
 		StatusField: "some-status",
-		DetailsField: map[string]interface{}{
-			"foo": "bar",
+		DetailsField: map[string][]interface{}{
+			"foo": {"bar"},
 		},
 	}
 	onlyStatusCodeError = &statusCodeError{statusCode: http.StatusNotFound, error: errors.New("foo")}
