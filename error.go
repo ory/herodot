@@ -46,16 +46,16 @@ type ErrorContextCarrier interface {
 	Status() string
 
 	// Details returns details on the error, if applicable.
-	Details() []map[string]interface{}
+	Details() map[string]interface{}
 }
 
 type DefaultError struct {
-	CodeField    int                      `json:"code,omitempty"`
-	StatusField  string                   `json:"status,omitempty"`
-	RIDField     string                   `json:"request,omitempty"`
-	ReasonField  string                   `json:"reason,omitempty"`
-	DetailsField []map[string]interface{} `json:"details,omitempty"`
-	ErrorField   string                   `json:"message"`
+	CodeField    int                    `json:"code,omitempty"`
+	StatusField  string                 `json:"status,omitempty"`
+	RIDField     string                 `json:"request,omitempty"`
+	ReasonField  string                 `json:"reason,omitempty"`
+	DetailsField map[string]interface{} `json:"details,omitempty"`
+	ErrorField   string                 `json:"message"`
 }
 
 func (e *DefaultError) Status() string {
@@ -74,7 +74,7 @@ func (e *DefaultError) Reason() string {
 	return e.ReasonField
 }
 
-func (e *DefaultError) Details() []map[string]interface{} {
+func (e *DefaultError) Details() map[string]interface{} {
 	return e.DetailsField
 }
 
@@ -88,6 +88,21 @@ func (e *DefaultError) setFallbackRequestID(request string) {
 	}
 
 	e.RIDField = request
+}
+
+func (e *DefaultError) WithReason(reason string) *DefaultError {
+	err := *e
+	err.ReasonField = reason
+	return &err
+}
+
+func (e *DefaultError) WithDetail(key, message string) *DefaultError {
+	err := *e
+	if err.DetailsField == nil {
+		err.DetailsField = map[string]interface{}{}
+	}
+	err.DetailsField[key] = message
+	return &err
 }
 
 func assertRichError(err error) *DefaultError {
@@ -113,19 +128,19 @@ func assertRichError(err error) *DefaultError {
 		return &DefaultError{
 			CodeField:    e.StatusCode(),
 			ErrorField:   err.Error(),
-			DetailsField: []map[string]interface{}{},
+			DetailsField: map[string]interface{}{},
 		}
 	} else if e, ok := errors.Cause(err).(StatusCodeCarrier); ok {
 		return &DefaultError{
 			CodeField:    e.StatusCode(),
 			ErrorField:   err.Error(),
-			DetailsField: []map[string]interface{}{},
+			DetailsField: map[string]interface{}{},
 		}
 	}
 
 	return &DefaultError{
 		ErrorField:   err.Error(),
 		CodeField:    http.StatusInternalServerError,
-		DetailsField: []map[string]interface{}{},
+		DetailsField: map[string]interface{}{},
 	}
 }
