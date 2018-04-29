@@ -33,13 +33,13 @@ type jsonError struct {
 
 type reporter func(w http.ResponseWriter, r *http.Request, code int, err error)
 
-// JSONWriter outputs JSON.
+// json outputs JSON.
 type JSONWriter struct {
 	logger   logrus.FieldLogger
 	Reporter func(args ...interface{}) reporter
 }
 
-// NewJSONWriter returns a JSONWriter
+// NewJSONWriter returns a json
 func NewJSONWriter(logger logrus.FieldLogger) *JSONWriter {
 	writer := &JSONWriter{
 		logger: logger,
@@ -53,7 +53,7 @@ func (h *JSONWriter) reporter(args ...interface{}) reporter {
 	return func(w http.ResponseWriter, r *http.Request, code int, err error) {
 		if h.logger == nil {
 			h.logger = logrus.StandardLogger()
-			h.logger.Warning("No logger was set in JSONWriter, defaulting to standard logger.")
+			h.logger.Warning("No logger was set in json, defaulting to standard logger.")
 		}
 
 		richError := assertRichError(err)
