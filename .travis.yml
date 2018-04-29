@@ -13,7 +13,7 @@ install:
   - glide install
 
 script:
-  - gotestcover -coverprofile="cover.out" -race -covermode="count" $(go list ./... | grep -v /vendor/)
+  - gotestcover -coverprofile="cover.out" -race -covermode="atomic" $(go list ./... | grep -v /vendor/)
 
 after_success:
   - go vet -x $(go list ./... | grep -v /vendor/)
