@@ -9,8 +9,10 @@ matrix:
     - go: tip
 
 install:
-  - go get github.com/mattn/goveralls golang.org/x/tools/cmd/cover github.com/pierrre/gotestcover github.com/Masterminds/glide
-  - glide install
+  - go get github.com/mattn/goveralls golang.org/x/tools/cmd/cover github.com/pierrre/gotestcover
+  - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+  - dep ensure -vendor-only
+
 
 script:
   - gotestcover -coverprofile="cover.out" -race -covermode="atomic" $(go list ./... | grep -v /vendor/)
