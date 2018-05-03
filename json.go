@@ -123,6 +123,10 @@ func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code
 	richError := assertRichError(err)
 	richError.setFallbackRequestID(r.Header.Get("X-Request-ID"))
 
+	if richError.CodeField == 0 {
+		richError.CodeField = http.StatusBadRequest
+	}
+
 	if code == 0 {
 		code = richError.CodeField
 	}
