@@ -1,15 +1,15 @@
 package herodot
 
 import (
+	"github.com/golang/gddo/httputil"
 	"github.com/sirupsen/logrus"
 	"net/http"
-	"github.com/golang/gddo/httputil"
 )
 
 // NegotiationHandler automatically negotiates the content type with the request client.
 type NegotiationHandler struct {
 	json  *JSONWriter
-	plain  *TextWriter
+	plain *TextWriter
 	html  *TextWriter
 	types []string
 }
@@ -19,7 +19,7 @@ func NewNegotiationHandler(logger logrus.FieldLogger) *NegotiationHandler {
 	return &NegotiationHandler{
 		json:  NewJSONWriter(logger),
 		plain: NewTextWriter(logger, "plain"),
-		html: NewTextWriter(logger, "html"),
+		html:  NewTextWriter(logger, "html"),
 		types: []string{
 			"application/json",
 		},

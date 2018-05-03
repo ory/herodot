@@ -22,9 +22,9 @@ package herodot
 import (
 	"net/http"
 
+	"fmt"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"fmt"
 )
 
 // json outputs JSON.
@@ -115,6 +115,11 @@ func (h *TextWriter) WriteError(w http.ResponseWriter, r *http.Request, err erro
 // WriteErrorCode writes an error to ResponseWriter and forces an error code.
 func (h *TextWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code int, err error) {
 	richError := assertRichError(err)
+
+	if richError.CodeField == 0 {
+		richError.CodeField = http.StatusBadRequest
+	}
+
 	if code == 0 {
 		code = richError.CodeField
 	}
