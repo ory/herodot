@@ -54,6 +54,9 @@ type statusCodeError struct {
 func (s *statusCodeError) StatusCode() int {
 	return s.statusCode
 }
+type jsonErrorTest struct {
+	Error *DefaultError `json:"error"`
+}
 
 func TestWriteError(t *testing.T) {
 	for k, tc := range []struct {
@@ -69,7 +72,7 @@ func TestWriteError(t *testing.T) {
 		{err: nativeerr.New("foo1"), expect: &DefaultError{CodeField: http.StatusInternalServerError, ErrorField: "foo1"}},
 	} {
 		t.Run(fmt.Sprintf("case=%d", k), func(t *testing.T) {
-			j := &jsonError{
+			j := &jsonErrorTest{
 				Error: &DefaultError{},
 			}
 
@@ -97,7 +100,7 @@ func TestWriteError(t *testing.T) {
 }
 
 func TestWriteErrorCode(t *testing.T) {
-	var j jsonError
+	var j jsonErrorTest
 
 	h := NewJSONWriter(nil)
 	r := mux.NewRouter()
