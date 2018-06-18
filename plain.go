@@ -30,7 +30,7 @@ import (
 // json outputs JSON.
 type TextWriter struct {
 	logger      logrus.FieldLogger
-	Reporter    func(args ...interface{}) reporter
+	Reporter    reporter
 	contentType string
 }
 
@@ -45,29 +45,8 @@ func NewTextWriter(logger logrus.FieldLogger, contentType string) *TextWriter {
 		contentType: "text/" + contentType,
 	}
 
-	writer.Reporter = writer.reporter
+	writer.Reporter = defaultReporter
 	return writer
-}
-
-func (h *TextWriter) reporter(args ...interface{}) reporter {
-	return func(w http.ResponseWriter, r *http.Request, code int, err error) {
-		if h.logger == nil {
-			h.logger = logrus.StandardLogger()
-			h.logger.Warning("No logger was set in json, defaulting to standard logger.")
-		}
-
-		richError := assertRichError(err)
-		h.logger.
-			WithField("request-id", r.Header.Get("X-Request-ID")).
-			WithField("writer", "JSON").
-			WithField("trace", getErrorTrace(err)).
-			WithField("code", code).
-			WithField("reason", richError.Reason()).
-			WithField("details", richError.Details()).
-			WithField("status", richError.Status()).
-			WithError(err).
-			Error(args...)
-	}
 }
 
 // Write a response object to the ResponseWriter with status code 200.
@@ -96,36 +75,29 @@ func (h *TextWriter) WriteCreated(w http.ResponseWriter, r *http.Request, locati
 // WriteError writes an error to ResponseWriter and tries to extract the error's status code by
 // asserting StatusCodeCarrier. If the error does not implement StatusCodeCarrier, the status code
 // is set to 500.
-func (h *TextWriter) WriteError(w http.ResponseWriter, r *http.Request, err error) {
-	// If our top-level error is a statusCodeCarrier
-	if s, ok := err.(StatusCodeCarrier); ok {
-		h.WriteErrorCode(w, r, s.StatusCode(), err)
-		return
-
-		// Or if pkg/error was used to wrap it
-	} else if s, ok := errors.Cause(err).(StatusCodeCarrier); ok {
+func (h *TextWriter) WriteError(w http.ResponseWriter, r *http.Request, err interface{}) {
+	if s, ok := errors.Cause(toError(err)).(StatusCodeCarrier); ok {
 		h.WriteErrorCode(w, r, s.StatusCode(), err)
 		return
 	}
 
-	h.WriteErrorCode(w, r, assertRichError(err).StatusCode(), err)
+	h.WriteErrorCode(w, r, http.StatusInternalServerError, err)
 	return
 }
 
 // WriteErrorCode writes an error to ResponseWriter and forces an error code.
-func (h *TextWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code int, err error) {
-	richError := assertRichError(err)
-
-	if richError.CodeField == 0 {
-		richError.CodeField = http.StatusBadRequest
+func (h *TextWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code int, err interface{}) {
+	e := toError(err)
+	if err == nil {
+		err = e
 	}
 
 	if code == 0 {
-		code = richError.CodeField
+		code = http.StatusInternalServerError
 	}
 
 	// All errors land here, so it's a really good idea to do the logging here as well!
-	h.Reporter("An error occurred while handling a request")(w, r, code, err)
+	h.Reporter(h.logger, "An error occurred while handling a request")(w, r, code, e)
 
 	w.Header().Set("Content-Type", h.contentType)
 	w.WriteHeader(code)

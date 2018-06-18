@@ -31,45 +31,26 @@ type jsonError struct {
 	Error *DefaultError `json:"error"`
 }
 
-type reporter func(w http.ResponseWriter, r *http.Request, code int, err error)
+type reporter func(logger logrus.FieldLogger, args ...interface{}) func(w http.ResponseWriter, r *http.Request, code int, err error)
 
 // json outputs JSON.
 type JSONWriter struct {
-	logger    logrus.FieldLogger
-	Reporter  func(args ...interface{}) reporter
-	WrapError bool
+	logger        logrus.FieldLogger
+	Reporter      reporter
+	ErrorEnhancer func(r *http.Request, err error) interface{}
 }
 
 // NewJSONWriter returns a json
 func NewJSONWriter(logger logrus.FieldLogger) *JSONWriter {
-	writer := &JSONWriter{
-		logger:    logger,
-		WrapError: true,
-	}
+	writer := &JSONWriter{logger: logger}
 
-	writer.Reporter = writer.reporter
+	writer.Reporter = defaultReporter
+	writer.ErrorEnhancer = defaultJSONErrorEnhancer
 	return writer
 }
 
-func (h *JSONWriter) reporter(args ...interface{}) reporter {
-	return func(w http.ResponseWriter, r *http.Request, code int, err error) {
-		if h.logger == nil {
-			h.logger = logrus.StandardLogger()
-			h.logger.Warning("No logger was set in json, defaulting to standard logger.")
-		}
-
-		richError := assertRichError(err)
-		h.logger.
-			WithField("request-id", r.Header.Get("X-Request-ID")).
-			WithField("writer", "JSON").
-			WithField("trace", getErrorTrace(err)).
-			WithField("code", code).
-			WithField("reason", richError.Reason()).
-			WithField("details", richError.Details()).
-			WithField("status", richError.Status()).
-			WithError(err).
-			Error(args...)
-	}
+func defaultJSONErrorEnhancer(r *http.Request, err error) interface{} {
+	return &jsonError{Error: toDefaultError(err, r.Header.Get("X-Request-ID"))}
 }
 
 // Write a response object to the ResponseWriter with status code 200.
@@ -104,48 +85,39 @@ func (h *JSONWriter) WriteCreated(w http.ResponseWriter, r *http.Request, locati
 // WriteError writes an error to ResponseWriter and tries to extract the error's status code by
 // asserting StatusCodeCarrier. If the error does not implement StatusCodeCarrier, the status code
 // is set to 500.
-func (h *JSONWriter) WriteError(w http.ResponseWriter, r *http.Request, err error) {
-	// If our top-level error is a statusCodeCarrier
-	if s, ok := err.(StatusCodeCarrier); ok {
-		h.WriteErrorCode(w, r, s.StatusCode(), err)
-		return
-
-		// Or if pkg/error was used to wrap it
-	} else if s, ok := errors.Cause(err).(StatusCodeCarrier); ok {
+func (h *JSONWriter) WriteError(w http.ResponseWriter, r *http.Request, err interface{}) {
+	if s, ok := errors.Cause(toError(err)).(StatusCodeCarrier); ok {
 		h.WriteErrorCode(w, r, s.StatusCode(), err)
 		return
 	}
 
-	h.WriteErrorCode(w, r, assertRichError(err).StatusCode(), err)
+	h.WriteErrorCode(w, r, http.StatusInternalServerError, err)
 	return
 }
 
 // WriteErrorCode writes an error to ResponseWriter and forces an error code.
-func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code int, err error) {
-	richError := assertRichError(err)
-	richError.setFallbackRequestID(r.Header.Get("X-Request-ID"))
+func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code int, err interface{}) {
+	e := toError(err)
+	if err == nil {
+		err = e
+	}
 
-	if richError.CodeField == 0 {
-		richError.CodeField = http.StatusBadRequest
+	if h.ErrorEnhancer != nil {
+		err = h.ErrorEnhancer(r, e)
 	}
 
 	if code == 0 {
-		code = richError.CodeField
+		code = http.StatusInternalServerError
 	}
 
 	// All errors land here, so it's a really good idea to do the logging here as well!
-	h.Reporter("An error occurred while handling a request")(w, r, code, err)
+	h.Reporter(h.logger, "An error occurred while handling a request")(w, r, code, e)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 
-	var e interface{} = richError
-	if h.WrapError {
-		e = &jsonError{Error: richError}
-	}
-
-	if err := json.NewEncoder(w).Encode(e); err != nil {
+	if err := json.NewEncoder(w).Encode(err); err != nil {
 		// There was an error, but there's actually not a lot we can do except log that this happened.
-		h.Reporter("Could not write jsonError to response writer")(w, r, code, errors.WithStack(err))
+		h.Reporter(h.logger, "Could not write jsonError to response writer")(w, r, code, errors.WithStack(err))
 	}
 }
