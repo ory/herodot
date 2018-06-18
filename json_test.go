@@ -111,7 +111,7 @@ func TestWriteErrorCode(t *testing.T) {
 	require.Nil(t, err)
 
 	require.Nil(t, json.NewDecoder(resp.Body).Decode(&j))
-	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 	assert.Equal(t, "foo", j.Error.RequestID())
 }
 

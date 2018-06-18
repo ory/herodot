@@ -84,7 +84,7 @@ func (h *NegotiationHandler) WriteCreated(w http.ResponseWriter, r *http.Request
 // WriteError writes an error to ResponseWriter and tries to extract the error's status code by
 // asserting StatusCodeCarrier. If the error does not implement StatusCodeCarrier, the status code
 // is set to 500.
-func (h *NegotiationHandler) WriteError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *NegotiationHandler) WriteError(w http.ResponseWriter, r *http.Request, err interface{}) {
 	switch httputil.NegotiateContentType(r, []string{}, "application/json") {
 	case "text/html":
 		h.html.WriteError(w, r, err)
@@ -102,7 +102,7 @@ func (h *NegotiationHandler) WriteError(w http.ResponseWriter, r *http.Request, 
 }
 
 // WriteErrorCode writes an error to ResponseWriter and forces an error code.
-func (h *NegotiationHandler) WriteErrorCode(w http.ResponseWriter, r *http.Request, code int, err error) {
+func (h *NegotiationHandler) WriteErrorCode(w http.ResponseWriter, r *http.Request, code int, err interface{}) {
 	switch httputil.NegotiateContentType(r, []string{}, "application/json") {
 	case "text/html":
 		h.html.WriteErrorCode(w, r, code, err)
