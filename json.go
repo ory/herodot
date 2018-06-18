@@ -35,14 +35,16 @@ type reporter func(w http.ResponseWriter, r *http.Request, code int, err error)
 
 // json outputs JSON.
 type JSONWriter struct {
-	logger   logrus.FieldLogger
-	Reporter func(args ...interface{}) reporter
+	logger    logrus.FieldLogger
+	Reporter  func(args ...interface{}) reporter
+	WrapError bool
 }
 
 // NewJSONWriter returns a json
 func NewJSONWriter(logger logrus.FieldLogger) *JSONWriter {
 	writer := &JSONWriter{
-		logger: logger,
+		logger:    logger,
+		WrapError: true,
 	}
 
 	writer.Reporter = writer.reporter
@@ -137,7 +139,12 @@ func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 
-	if err := json.NewEncoder(w).Encode(&jsonError{Error: richError}); err != nil {
+	var e interface{} = richError
+	if h.WrapError {
+		e = &jsonError{Error: richError}
+	}
+
+	if err := json.NewEncoder(w).Encode(e); err != nil {
 		// There was an error, but there's actually not a lot we can do except log that this happened.
 		h.Reporter("Could not write jsonError to response writer")(w, r, code, errors.WithStack(err))
 	}
