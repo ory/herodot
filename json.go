@@ -28,23 +28,25 @@ import (
 )
 
 type jsonError struct {
-	Error *DefaultError `json:"error"`
+	Error error `json:"error"`
 }
 
 type reporter func(w http.ResponseWriter, r *http.Request, code int, err error)
 
 // json outputs JSON.
 type JSONWriter struct {
-	logger    logrus.FieldLogger
-	Reporter  func(args ...interface{}) reporter
-	WrapError bool
+	logger      logrus.FieldLogger
+	Reporter    func(args ...interface{}) reporter
+	WrapError   bool
+	ToRichError bool
 }
 
 // NewJSONWriter returns a json
 func NewJSONWriter(logger logrus.FieldLogger) *JSONWriter {
 	writer := &JSONWriter{
-		logger:    logger,
-		WrapError: true,
+		logger:      logger,
+		WrapError:   true,
+		ToRichError: true,
 	}
 
 	writer.Reporter = writer.reporter
@@ -141,7 +143,15 @@ func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code
 
 	var e interface{} = richError
 	if h.WrapError {
-		e = &jsonError{Error: richError}
+		if !h.ToRichError {
+			e = &jsonError{Error: err}
+		} else {
+			e = &jsonError{Error: richError}
+		}
+	} else {
+		if !h.ToRichError {
+			e = err
+		}
 	}
 
 	if err := json.NewEncoder(w).Encode(e); err != nil {
