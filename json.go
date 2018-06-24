@@ -97,13 +97,12 @@ func (h *JSONWriter) WriteError(w http.ResponseWriter, r *http.Request, err inte
 
 // WriteErrorCode writes an error to ResponseWriter and forces an error code.
 func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code int, err interface{}) {
-	e := toError(err)
 	if err == nil {
-		err = e
+		err = toError(err)
 	}
 
 	if h.ErrorEnhancer != nil {
-		err = h.ErrorEnhancer(r, e)
+		err = h.ErrorEnhancer(r, toError(err))
 	}
 
 	if code == 0 {
@@ -111,7 +110,7 @@ func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code
 	}
 
 	// All errors land here, so it's a really good idea to do the logging here as well!
-	h.Reporter(h.logger, "An error occurred while handling a request")(w, r, code, e)
+	h.Reporter(h.logger, "An error occurred while handling a request")(w, r, code, toError(err))
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
