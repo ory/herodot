@@ -126,7 +126,8 @@ func TestWriteErrorNoEnrichment(t *testing.T) {
 	require.Nil(t, err)
 	body, err := ioutil.ReadAll(resp.Body)
 
-	assert.EqualValues(t,`{"foo":"foo","bar":"bar"}`,string(body))
+	assert.EqualValues(t,`{"foo":"foo","bar":"bar"}
+`,string(body))
 }
 
 func TestWriteErrorCode(t *testing.T) {
