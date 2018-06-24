@@ -31,6 +31,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"io/ioutil"
 )
 
 var (
@@ -80,6 +81,7 @@ func TestWriteError(t *testing.T) {
 				h.WriteError(w, r, tc.err)
 			})
 			ts := httptest.NewServer(r)
+			defer ts.Close()
 
 			resp, err := http.Get(ts.URL + "/do")
 			require.Nil(t, err)
@@ -96,6 +98,38 @@ func TestWriteError(t *testing.T) {
 	}
 }
 
+type testError struct {
+	Foo string `json:"foo"`
+	Bar string `json:"bar"`
+}
+
+func (e *testError) Error() string {
+	return e.Foo
+}
+
+func TestWriteErrorNoEnrichment(t *testing.T) {
+	h := NewJSONWriter(nil)
+	h.ErrorEnhancer = nil
+	r := mux.NewRouter()
+
+	r.HandleFunc("/do", func(w http.ResponseWriter, r *http.Request) {
+		r.Header.Set("X-Request-ID", "foo")
+		h.WriteErrorCode(w, r, 0, &testError{
+			Foo: "foo", Bar: "bar",
+		})
+	})
+
+	ts := httptest.NewServer(r)
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/do")
+	require.Nil(t, err)
+	body, err := ioutil.ReadAll(resp.Body)
+
+	assert.EqualValues(t,`{"foo":"foo","bar":"bar"}
+`,string(body))
+}
+
 func TestWriteErrorCode(t *testing.T) {
 	var j jsonError
 
@@ -106,6 +140,7 @@ func TestWriteErrorCode(t *testing.T) {
 		h.WriteErrorCode(w, r, 0, errors.Wrap(exampleError, ""))
 	})
 	ts := httptest.NewServer(r)
+	defer ts.Close()
 
 	resp, err := http.Get(ts.URL + "/do")
 	require.Nil(t, err)
@@ -124,6 +159,7 @@ func TestWriteJSON(t *testing.T) {
 		h.Write(w, r, &foo)
 	})
 	ts := httptest.NewServer(r)
+	defer ts.Close()
 
 	resp, err := http.Get(ts.URL + "/do")
 	require.Nil(t, err)
@@ -142,6 +178,7 @@ func TestWriteCreatedJSON(t *testing.T) {
 		h.WriteCreated(w, r, "/new", &foo)
 	})
 	ts := httptest.NewServer(r)
+	defer ts.Close()
 
 	resp, err := http.Get(ts.URL + "/do")
 	require.Nil(t, err)
@@ -162,6 +199,7 @@ func TestWriteCodeJSON(t *testing.T) {
 		h.WriteCode(w, r, 400, &foo)
 	})
 	ts := httptest.NewServer(r)
+	defer ts.Close()
 
 	resp, err := http.Get(ts.URL + "/do")
 	require.Nil(t, err)
@@ -181,6 +219,7 @@ func TestWriteCodeJSONDefault(t *testing.T) {
 		h.WriteCode(w, r, 0, &foo)
 	})
 	ts := httptest.NewServer(r)
+	defer ts.Close()
 
 	resp, err := http.Get(ts.URL + "/do")
 	require.Nil(t, err)
