@@ -27,11 +27,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"io/ioutil"
+
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"io/ioutil"
 )
 
 var (
@@ -126,8 +127,8 @@ func TestWriteErrorNoEnrichment(t *testing.T) {
 	require.Nil(t, err)
 	body, err := ioutil.ReadAll(resp.Body)
 
-	assert.EqualValues(t,`{"foo":"foo","bar":"bar"}
-`,string(body))
+	assert.EqualValues(t, `{"foo":"foo","bar":"bar"}
+`, string(body))
 }
 
 func TestWriteErrorCode(t *testing.T) {

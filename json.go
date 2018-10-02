@@ -101,10 +101,6 @@ func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code
 		err = toError(err)
 	}
 
-	if h.ErrorEnhancer != nil {
-		err = h.ErrorEnhancer(r, toError(err))
-	}
-
 	if code == 0 {
 		code = http.StatusInternalServerError
 	}
@@ -114,6 +110,11 @@ func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
+
+	// Enhancing must happen after logging or context will be lost.
+	if h.ErrorEnhancer != nil {
+		err = h.ErrorEnhancer(r, toError(err))
+	}
 
 	if err := json.NewEncoder(w).Encode(err); err != nil {
 		// There was an error, but there's actually not a lot we can do except log that this happened.

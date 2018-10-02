@@ -1,9 +1,10 @@
 package herodot
 
 import (
+	"net/http"
+
 	"github.com/golang/gddo/httputil"
 	"github.com/sirupsen/logrus"
-	"net/http"
 )
 
 // NegotiationHandler automatically negotiates the content type with the request client.

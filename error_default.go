@@ -1,8 +1,9 @@
 package herodot
 
 import (
-	"github.com/pkg/errors"
 	"net/http"
+
+	"github.com/pkg/errors"
 )
 
 type DefaultError struct {

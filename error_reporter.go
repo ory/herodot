@@ -1,11 +1,12 @@
 package herodot
 
 import (
-	"net/http"
-	"github.com/sirupsen/logrus"
-	"github.com/pkg/errors"
 	"fmt"
+	"net/http"
 	"reflect"
+
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 type stackTracer interface {
