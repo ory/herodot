@@ -36,6 +36,9 @@ type ErrorContextCarrier interface {
 	// Reason returns the reason for the error, if applicable.
 	Reason() string
 
+	// Debug returns debugging information for the error, if applicable.
+	Debug() string
+
 	// ID returns the error id, if applicable.
 	Status() string
 

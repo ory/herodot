@@ -32,6 +32,7 @@ func defaultReporter(logger logrus.FieldLogger, args ...interface{}) func(w http
 			WithField("trace", trace).
 			WithField("code", code).
 			WithField("reason", richError.Reason()).
+			WithField("debug", richError.Debug()).
 			WithField("details", richError.Details()).
 			WithField("status", richError.Status()).
 			WithError(err).

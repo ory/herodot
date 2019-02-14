@@ -1,6 +1,7 @@
 package herodot
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/pkg/errors"
@@ -11,6 +12,7 @@ type DefaultError struct {
 	StatusField  string                   `json:"status,omitempty"`
 	RIDField     string                   `json:"request,omitempty"`
 	ReasonField  string                   `json:"reason,omitempty"`
+	DebugField   string                   `json:"debug,omitempty"`
 	DetailsField map[string][]interface{} `json:"details,omitempty"`
 	ErrorField   string                   `json:"message"`
 }
@@ -31,6 +33,10 @@ func (e *DefaultError) Reason() string {
 	return e.ReasonField
 }
 
+func (e *DefaultError) Debug() string {
+	return e.DebugField
+}
+
 func (e *DefaultError) Details() map[string][]interface{} {
 	return e.DetailsField
 }
@@ -42,6 +48,31 @@ func (e *DefaultError) StatusCode() int {
 func (e *DefaultError) WithReason(reason string) *DefaultError {
 	err := *e
 	err.ReasonField = reason
+	return &err
+}
+
+func (e *DefaultError) WithReasonf(debug string, args ...interface{}) *DefaultError {
+	return e.WithReason(fmt.Sprintf(debug, args...))
+}
+
+func (e *DefaultError) WithError(m string) *DefaultError {
+	err := *e
+	err.ErrorField = m
+	return &err
+}
+
+func (e *DefaultError) WithErrorf(debug string, args ...interface{}) *DefaultError {
+	return e.WithDebug(fmt.Sprintf(debug, args...))
+}
+
+
+func (e *DefaultError) WithDebugf(debug string, args ...interface{}) *DefaultError {
+	return e.WithDebug(fmt.Sprintf(debug, args...))
+}
+
+func (e *DefaultError) WithDebug(debug string) *DefaultError {
+	err := *e
+	err.DebugField = debug
 	return &err
 }
 
@@ -68,6 +99,7 @@ func toDefaultError(err error, rid string) *DefaultError {
 			ErrorField:   err.Error(),
 			DetailsField: e.Details(),
 			StatusField:  e.Status(),
+			DebugField:  e.Debug(),
 		}
 	} else if e, ok := errors.Cause(err).(StatusCodeCarrier); ok {
 		return &DefaultError{
