@@ -83,10 +83,10 @@ func (h *JSONWriter) WriteCreated(w http.ResponseWriter, r *http.Request, locati
 }
 
 // WriteError writes an error to ResponseWriter and tries to extract the error's status code by
-// asserting StatusCodeCarrier. If the error does not implement StatusCodeCarrier, the status code
+// asserting statusCodeCarrier. If the error does not implement statusCodeCarrier, the status code
 // is set to 500.
 func (h *JSONWriter) WriteError(w http.ResponseWriter, r *http.Request, err interface{}) {
-	if s, ok := errors.Cause(toError(err)).(StatusCodeCarrier); ok {
+	if s, ok := errors.Cause(toError(err)).(statusCodeCarrier); ok {
 		h.WriteErrorCode(w, r, s.StatusCode(), err)
 		return
 	}
