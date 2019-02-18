@@ -15,6 +15,13 @@ type DefaultError struct {
 	DebugField   string                   `json:"debug,omitempty"`
 	DetailsField map[string][]interface{} `json:"details,omitempty"`
 	ErrorField   string                   `json:"message"`
+
+	trace errors.StackTrace
+}
+
+// StackTrace returns the error's stack trace.
+func (e *DefaultError) StackTrace() errors.StackTrace {
+	return e.trace
 }
 
 func (e *DefaultError) Status() string {
@@ -65,7 +72,6 @@ func (e *DefaultError) WithErrorf(debug string, args ...interface{}) *DefaultErr
 	return e.WithDebug(fmt.Sprintf(debug, args...))
 }
 
-
 func (e *DefaultError) WithDebugf(debug string, args ...interface{}) *DefaultError {
 	return e.WithDebug(fmt.Sprintf(debug, args...))
 }
@@ -85,35 +91,52 @@ func (e *DefaultError) WithDetail(key string, message ...interface{}) *DefaultEr
 	return &err
 }
 
-func toDefaultError(err error, rid string) *DefaultError {
-	if e, ok := errors.Cause(err).(ErrorContextCarrier); ok {
-		id := e.RequestID()
-		if id == "" {
-			id = rid
-		}
+func toDefaultError(err error, id string) *DefaultError {
+	var trace []errors.Frame
+	var reason, status, debug string
 
-		return &DefaultError{
-			CodeField:    e.StatusCode(),
-			ReasonField:  e.Reason(),
-			RIDField:     rid,
-			ErrorField:   err.Error(),
-			DetailsField: e.Details(),
-			StatusField:  e.Status(),
-			DebugField:  e.Debug(),
-		}
-	} else if e, ok := errors.Cause(err).(StatusCodeCarrier); ok {
-		return &DefaultError{
-			RIDField:     rid,
-			CodeField:    e.StatusCode(),
-			ErrorField:   err.Error(),
-			DetailsField: map[string][]interface{}{},
-		}
+	if e, ok := err.(stackTracer); ok {
+		trace = e.StackTrace()
+	}
+
+	err = errors.Cause(err)
+
+	statusCode := http.StatusInternalServerError
+	details := map[string][]interface{}{}
+	rid := id
+
+	if e, ok := err.(statusCodeCarrier); ok {
+		statusCode = e.StatusCode()
+	}
+
+	if e, ok := err.(reasonCarrier); ok {
+		reason = e.Reason()
+	}
+
+	if e, ok := err.(requestIDCarrier); ok && e.RequestID() != "" {
+		rid = e.RequestID()
+	}
+
+	if e, ok := err.(detailsCarrier); ok && e.Details() != nil {
+		details = e.Details()
+	}
+
+	if e, ok := err.(statusCarrier); ok {
+		status = e.Status()
+	}
+
+	if e, ok := err.(debugCarrier); ok {
+		debug = e.Debug()
 	}
 
 	return &DefaultError{
+		CodeField:    statusCode,
+		ReasonField:  reason,
 		RIDField:     rid,
 		ErrorField:   err.Error(),
-		CodeField:    http.StatusInternalServerError,
-		DetailsField: map[string][]interface{}{},
+		DetailsField: details,
+		StatusField:  status,
+		DebugField:   debug,
+		trace:        trace,
 	}
 }
