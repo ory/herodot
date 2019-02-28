@@ -31,3 +31,9 @@ var ErrBadRequest = DefaultError{
 	ErrorField:  "The request was malformed or contained invalid parameters",
 	CodeField:   http.StatusBadRequest,
 }
+
+var ErrUnsupportedMediaType = DefaultError{
+	StatusField: http.StatusText(http.StatusUnsupportedMediaType),
+	ErrorField:  "The request is using an unknown content type",
+	CodeField:   http.StatusUnsupportedMediaType,
+}
