@@ -91,7 +91,7 @@ func (e *DefaultError) WithDetail(key string, message ...interface{}) *DefaultEr
 	return &err
 }
 
-func toDefaultError(err error, id string) *DefaultError {
+func ToDefaultError(err error, id string) *DefaultError {
 	var trace []errors.Frame
 	var reason, status, debug string
 
