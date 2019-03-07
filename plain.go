@@ -46,7 +46,7 @@ func NewTextWriter(logger logrus.FieldLogger, contentType string) *TextWriter {
 		contentType: "text/" + contentType,
 	}
 
-	writer.Reporter = defaultReporter
+	writer.Reporter = DefaultErrorReporter
 	return writer
 }
 

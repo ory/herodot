@@ -44,13 +44,13 @@ type JSONWriter struct {
 func NewJSONWriter(logger logrus.FieldLogger) *JSONWriter {
 	writer := &JSONWriter{logger: logger}
 
-	writer.Reporter = defaultReporter
+	writer.Reporter = DefaultErrorReporter
 	writer.ErrorEnhancer = defaultJSONErrorEnhancer
 	return writer
 }
 
 func defaultJSONErrorEnhancer(r *http.Request, err error) interface{} {
-	return &jsonError{Error: toDefaultError(err, r.Header.Get("X-Request-ID"))}
+	return &jsonError{Error: ToDefaultError(err, r.Header.Get("X-Request-ID"))}
 }
 
 // Write a response object to the ResponseWriter with status code 200.
