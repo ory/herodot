@@ -6,8 +6,8 @@
 
 ---
 
-Herodot is a lightweight SDK for writing RESTful responses. You can compare it to [render](https://github.com/unrolled/render),
-but with easier error handling. The error model implements the well established
+Herodot is a lightweight SDK for writing RESTful responses. It is comparable to [render](https://github.com/unrolled/render)
+but provides easier error handling. The error model implements the well established
 [Google API Design Guide](https://cloud.google.com/apis/design/errors). Herodot currently supports only JSON responses
 but can be extended easily.
 
@@ -28,41 +28,46 @@ Tips on upgrading can be found in [UPGRADE.md](UPGRADE.md)
 
 ## Usage
 
-Using Herodot is straight forward, these examples will help you getting started.
+Using Herodot is straightforward. The examples below will help you get started.
 
 ### JSON
 
-Herodot supplies an interface, so it's possible to write many outputs, such as XML and others. For now, JSON is supported.
+Herodot supplies an interface, allowing to return errors in many data formats like XML and others. Currently, it supports only JSON.
 
 #### Write responses
 
 ```go
-var writer = herodot.NewJSONWriter(nil)
+var hd = herodot.NewJSONWriter(nil)
 
 func GetHandler(rw http.ResponseWriter, r *http.Request) {
-	writer.Write(rw, r, map[string]interface{}{
+	// run your business logic here
+	hd.Write(rw, r, map[string]interface{}{
 	    "key": "value"
 	})
 }
 
 type MyStruct struct {
-    Key string `json:"key"`
+	Key string `json:"key"`
 }
 
 func GetHandlerWithStruct(rw http.ResponseWriter, r *http.Request) {
-	writer.Write(rw, r, &MyStruct{Key: "value"})
+	// business logic
+	hd.Write(rw, r, &MyStruct{Key: "value"})
 }
 
 func PostHandlerWithStruct(rw http.ResponseWriter, r *http.Request) {
-	writer.WriteCreated(rw, r, "/path/to/the/resource/that/was/created", &MyStruct{Key: "value"})
+	// business logic
+	hd.WriteCreated(rw, r, "/path/to/the/resource/that/was/created", &MyStruct{Key: "value"})
 }
 
 func SomeHandlerWithArbitraryStatusCode(rw http.ResponseWriter, r *http.Request) {
-	writer.WriteCode(rw, r, http.StatusAccepted, &MyStruct{Key: "value"})
+	// business logic
+	hd.WriteCode(rw, r, http.StatusAccepted, &MyStruct{Key: "value"})
 }
 
 func SomeHandlerWithArbitraryStatusCode(rw http.ResponseWriter, r *http.Request) {
-	writer.WriteCode(rw, r, http.StatusAccepted, &MyStruct{Key: "value"})
+	// business logic
+	hd.WriteCode(rw, r, http.StatusAccepted, &MyStruct{Key: "value"})
 }
 ```
 
@@ -73,7 +78,7 @@ var writer = herodot.NewJSONWriter(nil)
 
 func GetHandlerWithError(rw http.ResponseWriter, r *http.Request) {
     if err := someFunctionThatReturnsAnError(); err != nil {
-        writer.WriteError(w, r, err)
+        hd.WriteError(w, r, err)
         return
     }
     
@@ -82,7 +87,7 @@ func GetHandlerWithError(rw http.ResponseWriter, r *http.Request) {
 
 func GetHandlerWithErrorCode(rw http.ResponseWriter, r *http.Request) {
     if err := someFunctionThatReturnsAnError(); err != nil {
-        writer.WriteErrorCode(w, r, http.StatusBadRequest, err)
+        hd.WriteErrorCode(w, r, http.StatusBadRequest, err)
         return
     }
     
@@ -92,9 +97,8 @@ func GetHandlerWithErrorCode(rw http.ResponseWriter, r *http.Request) {
 
 ### Errors
 
-Herodot implements the error model implements the well established
-[Google API Design Guide](https://cloud.google.com/apis/design/errors). Additionally, fields `request` and `reason` are
-available. The output of such an error looks like this:
+Herodot implements the error model of the well established
+[Google API Design Guide](https://cloud.google.com/apis/design/errors). Additionally, it makes the fields `request` and `reason` available. A complete Herodot error response looks like this:
 
 ```json
 {
@@ -112,4 +116,4 @@ available. The output of such an error looks like this:
 ```
 
 To add context to your errors, implement `herodot.ErrorContextCarrier`. If you only want to set the status code of errors
-implement `herodot.StatusCodeCarrier`.
+implement [herodot.StatusCodeCarrier](https://github.com/ory/herodot/blob/master/error.go#L22-L26).
