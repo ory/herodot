@@ -11,7 +11,7 @@ but with easier error handling. The error model implements the well established
 [Google API Design Guide](https://cloud.google.com/apis/design/errors). Herodot currently supports only JSON responses
 but can be extended easily.
 
-Herodot is used by [ORY Hydra](https://github.com/ory/hydra) and servers millions of requests already.
+Herodot is used by [ORY Hydra](https://github.com/ory/hydra) and serves millions of requests already.
 
 ## Installation
 
