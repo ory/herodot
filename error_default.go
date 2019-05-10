@@ -2,6 +2,7 @@ package herodot
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/pkg/errors"
@@ -68,8 +69,8 @@ func (e *DefaultError) WithError(m string) *DefaultError {
 	return &err
 }
 
-func (e *DefaultError) WithErrorf(debug string, args ...interface{}) *DefaultError {
-	return e.WithDebug(fmt.Sprintf(debug, args...))
+func (e *DefaultError) WithErrorf(message string, args ...interface{}) *DefaultError {
+	return e.WithError(fmt.Sprintf(message, args...))
 }
 
 func (e *DefaultError) WithDebugf(debug string, args ...interface{}) *DefaultError {
@@ -89,6 +90,25 @@ func (e *DefaultError) WithDetail(key string, message ...interface{}) *DefaultEr
 	}
 	err.DetailsField[key] = append(err.DetailsField[key], message...)
 	return &err
+}
+
+func (e *DefaultError) Format(s fmt.State, verb rune) {
+	switch verb {
+	case 'v':
+		if s.Flag('+') {
+			fmt.Fprintf(s, "error=%s\n", e.ErrorField)
+			fmt.Fprintf(s, "reason=%s\n", e.ReasonField)
+			fmt.Fprintf(s, "details=%+v\n", e.DetailsField)
+			fmt.Fprintf(s, "debug=%s\n", e.DebugField)
+			e.StackTrace().Format(s, verb)
+			return
+		}
+		fallthrough
+	case 's':
+		io.WriteString(s, e.ErrorField)
+	case 'q':
+		fmt.Fprintf(s, "%q", e.ErrorField)
+	}
 }
 
 func ToDefaultError(err error, id string) *DefaultError {
