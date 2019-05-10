@@ -69,13 +69,8 @@ func (e *DefaultError) WithError(m string) *DefaultError {
 	return &err
 }
 
-<<<<<<< Updated upstream
-func (e *DefaultError) WithErrorf(debug string, args ...interface{}) *DefaultError {
-	return e.WithDebug(fmt.Sprintf(debug, args...))
-=======
 func (e *DefaultError) WithErrorf(message string, args ...interface{}) *DefaultError {
 	return e.WithError(fmt.Sprintf(message, args...))
->>>>>>> Stashed changes
 }
 
 func (e *DefaultError) WithDebugf(debug string, args ...interface{}) *DefaultError {
