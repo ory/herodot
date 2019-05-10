@@ -25,6 +25,17 @@ func (e *DefaultError) StackTrace() errors.StackTrace {
 	return e.trace
 }
 
+func (e *DefaultError) WithTrace(err error) *DefaultError {
+	out := *e
+	if t, ok := err.(stackTracer); ok {
+		out.trace = t.StackTrace()
+	} else {
+		out.trace = errors.New("").(stackTracer).StackTrace()
+	}
+
+	return &out
+}
+
 func (e *DefaultError) Status() string {
 	return e.StatusField
 }
@@ -59,13 +70,13 @@ func (e *DefaultError) WithReason(reason string) *DefaultError {
 	return &err
 }
 
-func (e *DefaultError) WithReasonf(debug string, args ...interface{}) *DefaultError {
-	return e.WithReason(fmt.Sprintf(debug, args...))
+func (e *DefaultError) WithReasonf(reason string, args ...interface{}) *DefaultError {
+	return e.WithReason(fmt.Sprintf(reason, args...))
 }
 
-func (e *DefaultError) WithError(m string) *DefaultError {
+func (e *DefaultError) WithError(message string) *DefaultError {
 	err := *e
-	err.ErrorField = m
+	err.ErrorField = message
 	return &err
 }
 
@@ -83,12 +94,12 @@ func (e *DefaultError) WithDebug(debug string) *DefaultError {
 	return &err
 }
 
-func (e *DefaultError) WithDetail(key string, message ...interface{}) *DefaultError {
+func (e *DefaultError) WithDetail(key string, value ...interface{}) *DefaultError {
 	err := *e
 	if err.DetailsField == nil {
 		err.DetailsField = map[string][]interface{}{}
 	}
-	err.DetailsField[key] = append(err.DetailsField[key], message...)
+	err.DetailsField[key] = append(err.DetailsField[key], value...)
 	return &err
 }
 
