@@ -38,7 +38,6 @@ var ErrUnsupportedMediaType = DefaultError{
 	CodeField:   http.StatusUnsupportedMediaType,
 }
 
-
 var ErrConflict = DefaultError{
 	StatusField: http.StatusText(http.StatusConflict),
 	ErrorField:  "The resource could not be created due to a conflict",
