@@ -1,13 +1,13 @@
 module github.com/ory/herodot
 
 require (
-	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/golang/gddo v0.0.0-20180828051604-96d2a289f41e
-	github.com/gorilla/mux v1.6.2
-	github.com/pkg/errors v0.8.0
-	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/sirupsen/logrus v1.0.6
-	github.com/stretchr/testify v1.2.2
-	golang.org/x/crypto v0.0.0-20180830192347-182538f80094 // indirect
-	golang.org/x/sys v0.0.0-20180831094639-fa5fdf94c789 // indirect
+	github.com/golang/gddo v0.0.0-20190904175337-72a348e765d2
+	github.com/google/go-cmp v0.3.1 // indirect
+	github.com/gorilla/mux v1.7.0
+	github.com/ory/x v0.0.84
+	github.com/pkg/errors v0.8.1
+	github.com/sirupsen/logrus v1.4.2
+	github.com/stretchr/testify v1.3.0
 )
+
+go 1.13
