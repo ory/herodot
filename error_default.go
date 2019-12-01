@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/ory/x/errorsx"
 	"github.com/pkg/errors"
 )
 
@@ -130,33 +131,31 @@ func ToDefaultError(err error, id string) *DefaultError {
 		trace = e.StackTrace()
 	}
 
-	err = errors.Cause(err)
-
 	statusCode := http.StatusInternalServerError
 	details := map[string][]interface{}{}
 	rid := id
 
-	if e, ok := err.(statusCodeCarrier); ok {
+	if e, ok := errorsx.Cause(err).(statusCodeCarrier); ok {
 		statusCode = e.StatusCode()
 	}
 
-	if e, ok := err.(reasonCarrier); ok {
+	if e, ok := errorsx.Cause(err).(reasonCarrier); ok {
 		reason = e.Reason()
 	}
 
-	if e, ok := err.(requestIDCarrier); ok && e.RequestID() != "" {
+	if e, ok := errorsx.Cause(err).(requestIDCarrier); ok && e.RequestID() != "" {
 		rid = e.RequestID()
 	}
 
-	if e, ok := err.(detailsCarrier); ok && e.Details() != nil {
+	if e, ok := errorsx.Cause(err).(detailsCarrier); ok && e.Details() != nil {
 		details = e.Details()
 	}
 
-	if e, ok := err.(statusCarrier); ok {
+	if e, ok := errorsx.Cause(err).(statusCarrier); ok {
 		status = e.Status()
 	}
 
-	if e, ok := err.(debugCarrier); ok {
+	if e, ok := errorsx.Cause(err).(debugCarrier); ok {
 		debug = e.Debug()
 	}
 
