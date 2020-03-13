@@ -13,6 +13,10 @@ type stackTracer interface {
 	StackTrace() errors.StackTrace
 }
 
+type logLeveler interface {
+	GetLevel() logrus.Level
+}
+
 func DefaultErrorReporter(logger logrus.FieldLogger, args ...interface{}) func(w http.ResponseWriter, r *http.Request, code int, err error) {
 	return func(w http.ResponseWriter, r *http.Request, code int, err error) {
 		if logger == nil {
@@ -28,19 +32,23 @@ func DefaultErrorReporter(logger logrus.FieldLogger, args ...interface{}) func(w
 }
 
 func DefaultErrorLogger(logger logrus.FieldLogger, err error) logrus.FieldLogger {
-	trace := fmt.Sprintf("Stack trace could not be recovered from error type %s", reflect.TypeOf(err))
-	if e, ok := err.(stackTracer); ok {
-		trace = fmt.Sprintf("Stack trace: %+v", e.StackTrace())
-	}
-
 	richError := ToDefaultError(err, "")
-	return logger.
+	richLogger := logger.
 		WithField("request-id", richError.RequestID()).
-		WithField("trace", trace).
 		WithField("code", richError.StatusCode()).
 		WithField("reason", richError.Reason()).
 		WithField("debug", richError.Debug()).
 		WithField("details", richError.Details()).
 		WithField("status", richError.Status()).
 		WithError(err)
+
+	if leveler, ok := logger.(logLeveler); ok && leveler.GetLevel() >= logrus.DebugLevel {
+		if e, ok := err.(stackTracer); ok {
+			richLogger.WithField("trace", fmt.Sprintf("%+v", e.StackTrace()))
+		} else {
+			richLogger.WithField("trace", fmt.Sprintf("Stack trace could not be recovered from error type %s", reflect.TypeOf(err)))
+		}
+	}
+
+	return richLogger
 }
