@@ -5,8 +5,9 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/ory/x/errorsx"
 	"github.com/pkg/errors"
+
+	"github.com/ory/x/errorsx"
 )
 
 type DefaultError struct {
