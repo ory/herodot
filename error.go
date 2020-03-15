@@ -52,5 +52,5 @@ type statusCarrier interface {
 // detailsCarrier can be implemented by an error to support error contexts.
 type detailsCarrier interface {
 	// Details returns details on the error, if applicable.
-	Details() map[string][]interface{}
+	Details() map[string]interface{}
 }
