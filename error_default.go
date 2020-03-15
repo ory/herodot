@@ -11,13 +11,13 @@ import (
 )
 
 type DefaultError struct {
-	CodeField    int                      `json:"code,omitempty"`
-	StatusField  string                   `json:"status,omitempty"`
-	RIDField     string                   `json:"request,omitempty"`
-	ReasonField  string                   `json:"reason,omitempty"`
-	DebugField   string                   `json:"debug,omitempty"`
-	DetailsField map[string][]interface{} `json:"details,omitempty"`
-	ErrorField   string                   `json:"message"`
+	CodeField    int                    `json:"code,omitempty"`
+	StatusField  string                 `json:"status,omitempty"`
+	RIDField     string                 `json:"request,omitempty"`
+	ReasonField  string                 `json:"reason,omitempty"`
+	DebugField   string                 `json:"debug,omitempty"`
+	DetailsField map[string]interface{} `json:"details,omitempty"`
+	ErrorField   string                 `json:"message"`
 
 	trace errors.StackTrace
 }
@@ -58,7 +58,7 @@ func (e *DefaultError) Debug() string {
 	return e.DebugField
 }
 
-func (e *DefaultError) Details() map[string][]interface{} {
+func (e *DefaultError) Details() map[string]interface{} {
 	return e.DetailsField
 }
 
@@ -96,12 +96,21 @@ func (e *DefaultError) WithDebug(debug string) *DefaultError {
 	return &err
 }
 
-func (e *DefaultError) WithDetail(key string, value ...interface{}) *DefaultError {
+func (e *DefaultError) WithDetail(key, detail string) *DefaultError {
 	err := *e
 	if err.DetailsField == nil {
-		err.DetailsField = map[string][]interface{}{}
+		err.DetailsField = map[string]interface{}{}
 	}
-	err.DetailsField[key] = append(err.DetailsField[key], value...)
+	err.DetailsField[key] = detail
+	return &err
+}
+
+func (e *DefaultError) WithDetailf(key string, message string, args ...interface{}) *DefaultError {
+	err := *e
+	if err.DetailsField == nil {
+		err.DetailsField = map[string]interface{}{}
+	}
+	err.DetailsField[key] = fmt.Sprintf(message, args...)
 	return &err
 }
 
@@ -133,7 +142,7 @@ func ToDefaultError(err error, id string) *DefaultError {
 	}
 
 	statusCode := http.StatusInternalServerError
-	details := map[string][]interface{}{}
+	details := map[string]interface{}{}
 	rid := id
 
 	if e, ok := errorsx.Cause(err).(statusCodeCarrier); ok {

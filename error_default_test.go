@@ -36,9 +36,9 @@ func TestToDefaultError(t *testing.T) {
 
 	t.Run("case=debug", func(t *testing.T) {
 		e := &DefaultError{
-			DetailsField: map[string][]interface{}{"foo-debug": {"bar"}},
+			DetailsField: map[string]interface{}{"foo-debug": "bar"},
 		}
-		assert.EqualValues(t, map[string][]interface{}{"foo-debug": {"bar"}}, ToDefaultError(e, "").Details())
+		assert.EqualValues(t, map[string]interface{}{"foo-debug": "bar"}, ToDefaultError(e, "").Details())
 	})
 
 	t.Run("case=debug", func(t *testing.T) {
