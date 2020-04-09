@@ -39,7 +39,11 @@ func (e *DefaultError) Wrap(err error) {
 }
 
 func (e *DefaultError) WithTrace(err error) *DefaultError {
-	e.Wrap(err)
+	if st := stackTracer(nil); !sdterr.As(e.err, &st) {
+		e.Wrap(errors.WithStack(err))
+	} else {
+		e.Wrap(err)
+	}
 	return e
 }
 

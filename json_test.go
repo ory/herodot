@@ -22,6 +22,7 @@ package herodot
 import (
 	"bytes"
 	"encoding/json"
+	stderr "errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -57,6 +58,7 @@ func (s *statusCodeError) StatusCode() int {
 }
 
 func TestWriteError(t *testing.T) {
+	tracedErr := errors.New("err")
 	for k, tc := range []struct {
 		err    error
 		expect *DefaultError
@@ -64,10 +66,20 @@ func TestWriteError(t *testing.T) {
 		{err: exampleError, expect: exampleError},
 		{err: errors.WithStack(exampleError), expect: exampleError},
 		{err: onlyStatusCodeError, expect: &DefaultError{StatusField: http.StatusText(http.StatusNotFound), CodeField: http.StatusNotFound, ErrorField: "foo"}},
-		// {err: errors.WithStack(onlyStatusCodeError), expect: &DefaultError{CodeField: http.StatusNotFound, ErrorField: "foo"}},
-		// {err: errors.New("foo"), expect: &DefaultError{CodeField: http.StatusInternalServerError, ErrorField: "foo"}},
-		// {err: errors.WithStack(errors.New("foo1")), expect: &DefaultError{CodeField: http.StatusInternalServerError, ErrorField: "foo1"}},
-		// {err: stderr.New("foo1"), expect: &DefaultError{CodeField: http.StatusInternalServerError, ErrorField: "foo1"}},
+		{err: errors.WithStack(onlyStatusCodeError), expect: &DefaultError{StatusField: http.StatusText(http.StatusNotFound), CodeField: http.StatusNotFound, ErrorField: "foo"}},
+		{err: errors.New("foo"), expect: &DefaultError{StatusField: http.StatusText(http.StatusInternalServerError), CodeField: http.StatusInternalServerError, ErrorField: "foo"}},
+		{err: errors.WithStack(errors.New("foo1")), expect: &DefaultError{StatusField: http.StatusText(http.StatusInternalServerError), CodeField: http.StatusInternalServerError, ErrorField: "foo1"}},
+		{err: stderr.New("foo1"), expect: &DefaultError{StatusField: http.StatusText(http.StatusInternalServerError), CodeField: http.StatusInternalServerError, ErrorField: "foo1"}},
+		{
+			err: ErrInternalServerError.WithTrace(tracedErr).WithReasonf("Unable to prepare JSON Schema for HTTP Post Body Form parsing: %s", tracedErr).WithDebugf("%+v", tracedErr),
+			expect: &DefaultError{
+				ReasonField: fmt.Sprintf("Unable to prepare JSON Schema for HTTP Post Body Form parsing: %s", tracedErr),
+				StatusField: http.StatusText(http.StatusInternalServerError),
+				CodeField:   http.StatusInternalServerError,
+				ErrorField:  "An internal server error occurred, please contact the system administrator",
+				DebugField:  fmt.Sprintf("%+v", tracedErr),
+			},
+		},
 	} {
 		t.Run(fmt.Sprintf("case=%d", k), func(t *testing.T) {
 			var j jsonError
