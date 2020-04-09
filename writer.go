@@ -38,8 +38,8 @@ type Writer interface {
 	// WriteError writes an error to ResponseWriter and tries to extract the error's status code by
 	// asserting statusCodeCarrier. If the error does not implement statusCodeCarrier, the status code
 	// is set to 500.
-	WriteError(w http.ResponseWriter, r *http.Request, err interface{})
+	WriteError(w http.ResponseWriter, r *http.Request, err error)
 
 	// WriteErrorCode writes an error to ResponseWriter and forces an error code.
-	WriteErrorCode(w http.ResponseWriter, r *http.Request, code int, err interface{})
+	WriteErrorCode(w http.ResponseWriter, r *http.Request, code int, err error)
 }

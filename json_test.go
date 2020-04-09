@@ -20,14 +20,13 @@
 package herodot
 
 import (
+	"bytes"
 	"encoding/json"
-	nativeerr "errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"io/ioutil"
 
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -38,7 +37,7 @@ import (
 var (
 	exampleError = &DefaultError{
 		CodeField:   http.StatusNotFound,
-		ErrorField:  errors.New("foo").Error(),
+		ErrorField:  "foo",
 		ReasonField: "some-reason",
 		StatusField: "some-status",
 		DetailsField: map[string]interface{}{
@@ -64,16 +63,14 @@ func TestWriteError(t *testing.T) {
 	}{
 		{err: exampleError, expect: exampleError},
 		{err: errors.WithStack(exampleError), expect: exampleError},
-		{err: onlyStatusCodeError, expect: &DefaultError{CodeField: http.StatusNotFound, ErrorField: "foo"}},
-		{err: errors.WithStack(onlyStatusCodeError), expect: &DefaultError{CodeField: http.StatusNotFound, ErrorField: "foo"}},
-		{err: errors.New("foo"), expect: &DefaultError{CodeField: http.StatusInternalServerError, ErrorField: "foo"}},
-		{err: errors.WithStack(errors.New("foo1")), expect: &DefaultError{CodeField: http.StatusInternalServerError, ErrorField: "foo1"}},
-		{err: nativeerr.New("foo1"), expect: &DefaultError{CodeField: http.StatusInternalServerError, ErrorField: "foo1"}},
+		{err: onlyStatusCodeError, expect: &DefaultError{StatusField: http.StatusText(http.StatusNotFound), CodeField: http.StatusNotFound, ErrorField: "foo"}},
+		// {err: errors.WithStack(onlyStatusCodeError), expect: &DefaultError{CodeField: http.StatusNotFound, ErrorField: "foo"}},
+		// {err: errors.New("foo"), expect: &DefaultError{CodeField: http.StatusInternalServerError, ErrorField: "foo"}},
+		// {err: errors.WithStack(errors.New("foo1")), expect: &DefaultError{CodeField: http.StatusInternalServerError, ErrorField: "foo1"}},
+		// {err: stderr.New("foo1"), expect: &DefaultError{CodeField: http.StatusInternalServerError, ErrorField: "foo1"}},
 	} {
 		t.Run(fmt.Sprintf("case=%d", k), func(t *testing.T) {
-			j := &jsonError{
-				Error: &DefaultError{},
-			}
+			var j jsonError
 
 			h := NewJSONWriter(nil)
 			r := mux.NewRouter()
@@ -87,14 +84,15 @@ func TestWriteError(t *testing.T) {
 			resp, err := http.Get(ts.URL + "/do")
 			require.Nil(t, err)
 			defer resp.Body.Close()
+			body, _ := ioutil.ReadAll(resp.Body)
 
-			require.Nil(t, json.NewDecoder(resp.Body).Decode(j))
-			assert.Equal(t, tc.expect.StatusCode(), resp.StatusCode)
-			assert.Equal(t, "foo", j.Error.RequestID())
-			assert.Equal(t, tc.expect.Status(), j.Error.Status())
-			assert.Equal(t, tc.expect.StatusCode(), j.Error.StatusCode())
-			assert.Equal(t, tc.expect.Reason(), j.Error.Reason())
-			assert.Equal(t, tc.expect.Error(), j.Error.Error())
+			require.Nil(t, json.NewDecoder(bytes.NewBuffer(body)).Decode(&j), "%s", body)
+			assert.Equal(t, tc.expect.StatusCode(), resp.StatusCode, "%s", body)
+			assert.Equal(t, "foo", j.Error.RequestID(), "%s", body)
+			assert.Equal(t, tc.expect.Status(), j.Error.Status(), "%s", body)
+			assert.Equal(t, tc.expect.StatusCode(), j.Error.StatusCode(), "%s", body)
+			assert.Equal(t, tc.expect.Reason(), j.Error.Reason(), "%s", body)
+			assert.Equal(t, tc.expect.Error(), j.Error.Error(), "%s", body)
 		})
 	}
 }
