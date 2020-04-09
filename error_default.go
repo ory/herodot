@@ -1,13 +1,12 @@
 package herodot
 
 import (
+	sdterr "errors"
 	"fmt"
 	"io"
 	"net/http"
 
 	"github.com/pkg/errors"
-
-	"github.com/ory/x/errorsx"
 )
 
 type DefaultError struct {
@@ -19,105 +18,122 @@ type DefaultError struct {
 	DetailsField map[string]interface{} `json:"details,omitempty"`
 	ErrorField   string                 `json:"message"`
 
-	trace errors.StackTrace
+	err error
 }
 
 // StackTrace returns the error's stack trace.
-func (e *DefaultError) StackTrace() errors.StackTrace {
-	return e.trace
+func (e DefaultError) StackTrace() (trace errors.StackTrace) {
+	if st := stackTracer(nil); sdterr.As(e.err, &st) {
+		trace = st.StackTrace()
+	}
+
+	return
+}
+
+func (e DefaultError) Unwrap() error {
+	return e.err
+}
+
+func (e *DefaultError) Wrap(err error) {
+	e.err = err
 }
 
 func (e *DefaultError) WithTrace(err error) *DefaultError {
-	out := *e
-	if t, ok := err.(stackTracer); ok {
-		out.trace = t.StackTrace()
-	} else {
-		out.trace = errors.New("").(stackTracer).StackTrace()
-	}
-
-	return &out
+	e.Wrap(err)
+	return e
 }
 
-func (e *DefaultError) Status() string {
+func (e DefaultError) Is(err error) bool {
+	switch te := err.(type) {
+	case DefaultError:
+		return e.ErrorField == te.ErrorField &&
+			e.StatusField == te.StatusField &&
+			e.CodeField == te.CodeField
+	case *DefaultError:
+		return e.ErrorField == te.ErrorField &&
+			e.StatusField == te.StatusField &&
+			e.CodeField == te.CodeField
+	default:
+		return false
+	}
+}
+
+func (e DefaultError) Status() string {
 	return e.StatusField
 }
 
-func (e *DefaultError) Error() string {
+func (e DefaultError) Error() string {
 	return e.ErrorField
 }
 
-func (e *DefaultError) RequestID() string {
+func (e DefaultError) RequestID() string {
 	return e.RIDField
 }
 
-func (e *DefaultError) Reason() string {
+func (e DefaultError) Reason() string {
 	return e.ReasonField
 }
 
-func (e *DefaultError) Debug() string {
+func (e DefaultError) Debug() string {
 	return e.DebugField
 }
 
-func (e *DefaultError) Details() map[string]interface{} {
+func (e DefaultError) Details() map[string]interface{} {
 	return e.DetailsField
 }
 
-func (e *DefaultError) StatusCode() int {
+func (e DefaultError) StatusCode() int {
 	return e.CodeField
 }
 
-func (e *DefaultError) WithReason(reason string) *DefaultError {
-	err := *e
-	err.ReasonField = reason
-	return &err
+func (e DefaultError) WithReason(reason string) *DefaultError {
+	e.ReasonField = reason
+	return &e
 }
 
-func (e *DefaultError) WithReasonf(reason string, args ...interface{}) *DefaultError {
+func (e DefaultError) WithReasonf(reason string, args ...interface{}) *DefaultError {
 	return e.WithReason(fmt.Sprintf(reason, args...))
 }
 
-func (e *DefaultError) WithError(message string) *DefaultError {
-	err := *e
-	err.ErrorField = message
-	return &err
+func (e DefaultError) WithError(message string) *DefaultError {
+	e.ErrorField = message
+	return &e
 }
 
-func (e *DefaultError) WithErrorf(message string, args ...interface{}) *DefaultError {
+func (e DefaultError) WithErrorf(message string, args ...interface{}) *DefaultError {
 	return e.WithError(fmt.Sprintf(message, args...))
 }
 
-func (e *DefaultError) WithDebugf(debug string, args ...interface{}) *DefaultError {
+func (e DefaultError) WithDebugf(debug string, args ...interface{}) *DefaultError {
 	return e.WithDebug(fmt.Sprintf(debug, args...))
 }
 
-func (e *DefaultError) WithDebug(debug string) *DefaultError {
-	err := *e
-	err.DebugField = debug
-	return &err
+func (e DefaultError) WithDebug(debug string) *DefaultError {
+	e.DebugField = debug
+	return &e
 }
 
-func (e *DefaultError) WithDetail(key, detail string) *DefaultError {
-	err := *e
-	if err.DetailsField == nil {
-		err.DetailsField = map[string]interface{}{}
+func (e DefaultError) WithDetail(key, detail string) *DefaultError {
+	if e.DetailsField == nil {
+		e.DetailsField = map[string]interface{}{}
 	}
-	err.DetailsField[key] = detail
-	return &err
+	e.DetailsField[key] = detail
+	return &e
 }
 
-func (e *DefaultError) WithDetailf(key string, message string, args ...interface{}) *DefaultError {
-	err := *e
-	if err.DetailsField == nil {
-		err.DetailsField = map[string]interface{}{}
+func (e DefaultError) WithDetailf(key string, message string, args ...interface{}) *DefaultError {
+	if e.DetailsField == nil {
+		e.DetailsField = map[string]interface{}{}
 	}
-	err.DetailsField[key] = fmt.Sprintf(message, args...)
-	return &err
+	e.DetailsField[key] = fmt.Sprintf(message, args...)
+	return &e
 }
 
-func (e *DefaultError) Format(s fmt.State, verb rune) {
+func (e DefaultError) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
+			fmt.Fprintf(s, "rid=%s\n", e.RIDField)
 			fmt.Fprintf(s, "error=%s\n", e.ErrorField)
 			fmt.Fprintf(s, "reason=%s\n", e.ReasonField)
 			fmt.Fprintf(s, "details=%+v\n", e.DetailsField)
@@ -134,49 +150,36 @@ func (e *DefaultError) Format(s fmt.State, verb rune) {
 }
 
 func ToDefaultError(err error, id string) *DefaultError {
-	var trace []errors.Frame
-	var reason, status, debug string
-
-	if e, ok := err.(stackTracer); ok {
-		trace = e.StackTrace()
-	}
-
-	statusCode := http.StatusInternalServerError
-	details := map[string]interface{}{}
-	rid := id
-
-	if e, ok := errorsx.Cause(err).(statusCodeCarrier); ok {
-		statusCode = e.StatusCode()
-	}
-
-	if e, ok := errorsx.Cause(err).(reasonCarrier); ok {
-		reason = e.Reason()
-	}
-
-	if e, ok := errorsx.Cause(err).(requestIDCarrier); ok && e.RequestID() != "" {
-		rid = e.RequestID()
-	}
-
-	if e, ok := errorsx.Cause(err).(detailsCarrier); ok && e.Details() != nil {
-		details = e.Details()
-	}
-
-	if e, ok := errorsx.Cause(err).(statusCarrier); ok {
-		status = e.Status()
-	}
-
-	if e, ok := errorsx.Cause(err).(debugCarrier); ok {
-		debug = e.Debug()
-	}
-
-	return &DefaultError{
-		CodeField:    statusCode,
-		ReasonField:  reason,
-		RIDField:     rid,
+	de := &DefaultError{
+		RIDField:     id,
+		CodeField:    http.StatusInternalServerError,
+		DetailsField: map[string]interface{}{},
 		ErrorField:   err.Error(),
-		DetailsField: details,
-		StatusField:  status,
-		DebugField:   debug,
-		trace:        trace,
 	}
+	de.Wrap(err)
+
+	if c := reasonCarrier(nil); sdterr.As(err, &c) {
+		de.ReasonField = c.Reason()
+	}
+	if c := requestIDCarrier(nil); sdterr.As(err, &c) && c.RequestID() != "" {
+		de.RIDField = c.RequestID()
+	}
+	if c := detailsCarrier(nil); sdterr.As(err, &c) && c.Details() != nil {
+		de.DetailsField = c.Details()
+	}
+	if c := statusCarrier(nil); sdterr.As(err, &c) && c.Status() != "" {
+		de.StatusField = c.Status()
+	}
+	if c := statusCodeCarrier(nil); sdterr.As(err, &c) && c.StatusCode() != 0 {
+		de.CodeField = c.StatusCode()
+	}
+	if c := debugCarrier(nil); sdterr.As(err, &c) {
+		de.DebugField = c.Debug()
+	}
+
+	if de.StatusField == "" {
+		de.StatusField = http.StatusText(de.StatusCode())
+	}
+
+	return de
 }

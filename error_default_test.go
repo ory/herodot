@@ -1,6 +1,7 @@
 package herodot
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -11,6 +12,14 @@ func TestToDefaultError(t *testing.T) {
 	t.Run("case=stack", func(t *testing.T) {
 		e := errors.New("hi")
 		assert.EqualValues(t, e.(stackTracer).StackTrace(), ToDefaultError(e, "").StackTrace())
+	})
+
+	t.Run("case=wrap", func(t *testing.T) {
+		orig := errors.New("hi")
+		wrap := new(DefaultError)
+		wrap.Wrap(orig)
+
+		assert.EqualValues(t, orig.(stackTracer).StackTrace(), wrap.StackTrace())
 	})
 
 	t.Run("case=status", func(t *testing.T) {
@@ -34,14 +43,14 @@ func TestToDefaultError(t *testing.T) {
 		assert.EqualValues(t, "foo-debug", ToDefaultError(e, "").Debug())
 	})
 
-	t.Run("case=debug", func(t *testing.T) {
+	t.Run("case=details", func(t *testing.T) {
 		e := &DefaultError{
 			DetailsField: map[string]interface{}{"foo-debug": "bar"},
 		}
 		assert.EqualValues(t, map[string]interface{}{"foo-debug": "bar"}, ToDefaultError(e, "").Details())
 	})
 
-	t.Run("case=debug", func(t *testing.T) {
+	t.Run("case=rid", func(t *testing.T) {
 		e := &DefaultError{
 			RIDField: "foo-rid",
 		}
@@ -49,11 +58,15 @@ func TestToDefaultError(t *testing.T) {
 		assert.EqualValues(t, "fallback-rid", ToDefaultError(new(DefaultError), "fallback-rid").RequestID())
 	})
 
-	t.Run("case=status-code", func(t *testing.T) {
-		e := &DefaultError{
-			CodeField: 501,
-		}
+	t.Run("case=code", func(t *testing.T) {
+		e := &DefaultError{CodeField: 501}
 		assert.EqualValues(t, 501, ToDefaultError(e, "").StatusCode())
+		assert.EqualValues(t, http.StatusText(501), ToDefaultError(e, "").Status())
+
+		e = &DefaultError{CodeField: 501, StatusField: "foobar"}
+		assert.EqualValues(t, 501, ToDefaultError(e, "").StatusCode())
+		assert.EqualValues(t, "foobar", ToDefaultError(e, "").Status())
+
 		assert.EqualValues(t, 500, ToDefaultError(errors.New(""), "").StatusCode())
 	})
 }

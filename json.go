@@ -21,6 +21,7 @@ package herodot
 
 import (
 	"encoding/json"
+	stderr "errors"
 	"net/http"
 
 	"github.com/pkg/errors"
@@ -70,9 +71,9 @@ func (h *JSONWriter) WriteCode(w http.ResponseWriter, r *http.Request, code int,
 		code = http.StatusOK
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(code)
-	w.Write(js)
+	_, _ = w.Write(js)
 }
 
 // WriteCreated writes a response object to the ResponseWriter with status code 201 and
@@ -85,9 +86,9 @@ func (h *JSONWriter) WriteCreated(w http.ResponseWriter, r *http.Request, locati
 // WriteError writes an error to ResponseWriter and tries to extract the error's status code by
 // asserting statusCodeCarrier. If the error does not implement statusCodeCarrier, the status code
 // is set to 500.
-func (h *JSONWriter) WriteError(w http.ResponseWriter, r *http.Request, err interface{}) {
-	if s, ok := errors.Cause(toError(err)).(statusCodeCarrier); ok {
-		h.WriteErrorCode(w, r, s.StatusCode(), err)
+func (h *JSONWriter) WriteError(w http.ResponseWriter, r *http.Request, err error) {
+	if c := statusCodeCarrier(nil); stderr.As(err, &c) {
+		h.WriteErrorCode(w, r, c.StatusCode(), err)
 		return
 	}
 
@@ -96,11 +97,7 @@ func (h *JSONWriter) WriteError(w http.ResponseWriter, r *http.Request, err inte
 }
 
 // WriteErrorCode writes an error to ResponseWriter and forces an error code.
-func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code int, err interface{}) {
-	if err == nil {
-		err = toError(err)
-	}
-
+func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code int, err error) {
 	if code == 0 {
 		code = http.StatusInternalServerError
 	}
@@ -112,11 +109,12 @@ func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code
 	w.WriteHeader(code)
 
 	// Enhancing must happen after logging or context will be lost.
+	var payload interface{} = err
 	if h.ErrorEnhancer != nil {
-		err = h.ErrorEnhancer(r, toError(err))
+		payload = h.ErrorEnhancer(r, err)
 	}
 
-	if err := json.NewEncoder(w).Encode(err); err != nil {
+	if err := json.NewEncoder(w).Encode(payload); err != nil {
 		// There was an error, but there's actually not a lot we can do except log that this happened.
 		h.Reporter(h.logger, "Could not write jsonError to response writer")(w, r, code, errors.WithStack(err))
 	}
