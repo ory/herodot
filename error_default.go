@@ -38,6 +38,11 @@ func (e *DefaultError) Wrap(err error) {
 	e.err = err
 }
 
+func (e DefaultError) WithWrap(err error) *DefaultError {
+	e.err = err
+	return &e
+}
+
 func (e *DefaultError) WithTrace(err error) *DefaultError {
 	if st := stackTracer(nil); !sdterr.As(e.err, &st) {
 		e.Wrap(errors.WithStack(err))
