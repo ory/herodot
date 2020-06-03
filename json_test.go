@@ -29,7 +29,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -85,12 +84,10 @@ func TestWriteError(t *testing.T) {
 			var j jsonError
 
 			h := NewJSONWriter(nil)
-			r := mux.NewRouter()
-			r.HandleFunc("/do", func(w http.ResponseWriter, r *http.Request) {
+			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				r.Header.Set("X-Request-ID", "foo")
 				h.WriteError(w, r, tc.err)
-			})
-			ts := httptest.NewServer(r)
+			}))
 			defer ts.Close()
 
 			resp, err := http.Get(ts.URL + "/do")
@@ -121,16 +118,12 @@ func (e *testError) Error() string {
 func TestWriteErrorNoEnrichment(t *testing.T) {
 	h := NewJSONWriter(nil)
 	h.ErrorEnhancer = nil
-	r := mux.NewRouter()
-
-	r.HandleFunc("/do", func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r.Header.Set("X-Request-ID", "foo")
 		h.WriteErrorCode(w, r, 0, &testError{
 			Foo: "foo", Bar: "bar",
 		})
-	})
-
-	ts := httptest.NewServer(r)
+	}))
 	defer ts.Close()
 
 	resp, err := http.Get(ts.URL + "/do")
@@ -145,12 +138,10 @@ func TestWriteErrorCode(t *testing.T) {
 	var j jsonError
 
 	h := NewJSONWriter(nil)
-	r := mux.NewRouter()
-	r.HandleFunc("/do", func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r.Header.Set("X-Request-ID", "foo")
 		h.WriteErrorCode(w, r, 0, errors.Wrap(exampleError, ""))
-	})
-	ts := httptest.NewServer(r)
+	}))
 	defer ts.Close()
 
 	resp, err := http.Get(ts.URL + "/do")
@@ -165,11 +156,9 @@ func TestWriteJSON(t *testing.T) {
 	foo := map[string]string{"foo": "bar"}
 
 	h := NewJSONWriter(nil)
-	r := mux.NewRouter()
-	r.HandleFunc("/do", func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h.Write(w, r, &foo)
-	})
-	ts := httptest.NewServer(r)
+	}))
 	defer ts.Close()
 
 	resp, err := http.Get(ts.URL + "/do")
@@ -184,11 +173,9 @@ func TestWriteCreatedJSON(t *testing.T) {
 	foo := map[string]string{"foo": "bar"}
 
 	h := NewJSONWriter(nil)
-	r := mux.NewRouter()
-	r.HandleFunc("/do", func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h.WriteCreated(w, r, "/new", &foo)
-	})
-	ts := httptest.NewServer(r)
+	}))
 	defer ts.Close()
 
 	resp, err := http.Get(ts.URL + "/do")
@@ -205,11 +192,9 @@ func TestWriteCodeJSON(t *testing.T) {
 	foo := map[string]string{"foo": "bar"}
 
 	h := NewJSONWriter(nil)
-	r := mux.NewRouter()
-	r.HandleFunc("/do", func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h.WriteCode(w, r, 400, &foo)
-	})
-	ts := httptest.NewServer(r)
+	}))
 	defer ts.Close()
 
 	resp, err := http.Get(ts.URL + "/do")
@@ -225,11 +210,9 @@ func TestWriteCodeJSONDefault(t *testing.T) {
 	foo := map[string]string{"foo": "bar"}
 
 	h := NewJSONWriter(nil)
-	r := mux.NewRouter()
-	r.HandleFunc("/do", func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h.WriteCode(w, r, 0, &foo)
-	})
-	ts := httptest.NewServer(r)
+	}))
 	defer ts.Close()
 
 	resp, err := http.Get(ts.URL + "/do")

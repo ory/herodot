@@ -7,6 +7,8 @@ import (
 	"net/http"
 
 	"github.com/pkg/errors"
+
+	"github.com/ory/x/errorsx"
 )
 
 type DefaultError struct {
@@ -122,7 +124,7 @@ func (e DefaultError) WithDebug(debug string) *DefaultError {
 	return &e
 }
 
-func (e DefaultError) WithDetail(key, detail string) *DefaultError {
+func (e DefaultError) WithDetail(key string, detail interface{}) *DefaultError {
 	if e.DetailsField == nil {
 		e.DetailsField = map[string]interface{}{}
 	}
@@ -167,22 +169,22 @@ func ToDefaultError(err error, id string) *DefaultError {
 	}
 	de.Wrap(err)
 
-	if c := reasonCarrier(nil); sdterr.As(err, &c) {
+	if c := errorsx.ReasonCarrier(nil); sdterr.As(err, &c) {
 		de.ReasonField = c.Reason()
 	}
-	if c := requestIDCarrier(nil); sdterr.As(err, &c) && c.RequestID() != "" {
+	if c := errorsx.RequestIDCarrier(nil); sdterr.As(err, &c) && c.RequestID() != "" {
 		de.RIDField = c.RequestID()
 	}
-	if c := detailsCarrier(nil); sdterr.As(err, &c) && c.Details() != nil {
+	if c := errorsx.DetailsCarrier(nil); sdterr.As(err, &c) && c.Details() != nil {
 		de.DetailsField = c.Details()
 	}
-	if c := statusCarrier(nil); sdterr.As(err, &c) && c.Status() != "" {
+	if c := errorsx.StatusCarrier(nil); sdterr.As(err, &c) && c.Status() != "" {
 		de.StatusField = c.Status()
 	}
-	if c := statusCodeCarrier(nil); sdterr.As(err, &c) && c.StatusCode() != 0 {
+	if c := errorsx.StatusCodeCarrier(nil); sdterr.As(err, &c) && c.StatusCode() != 0 {
 		de.CodeField = c.StatusCode()
 	}
-	if c := debugCarrier(nil); sdterr.As(err, &c) {
+	if c := errorsx.DebugCarrier(nil); sdterr.As(err, &c) {
 		de.DebugField = c.Debug()
 	}
 
