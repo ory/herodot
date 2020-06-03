@@ -24,7 +24,11 @@ type DefaultError struct {
 }
 
 // StackTrace returns the error's stack trace.
-func (e DefaultError) StackTrace() (trace errors.StackTrace) {
+func (e *DefaultError) StackTrace() (trace errors.StackTrace) {
+	if e.err == e {
+		return
+	}
+
 	if st := stackTracer(nil); sdterr.As(e.err, &st) {
 		trace = st.StackTrace()
 	}

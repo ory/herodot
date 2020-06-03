@@ -22,6 +22,13 @@ func TestToDefaultError(t *testing.T) {
 		assert.EqualValues(t, orig.(stackTracer).StackTrace(), wrap.StackTrace())
 	})
 
+	t.Run("case=wrap_self", func(t *testing.T) {
+		wrap := new(DefaultError)
+		wrap.Wrap(wrap)
+
+		assert.Empty(t, wrap.StackTrace())
+	})
+
 	t.Run("case=status", func(t *testing.T) {
 		e := &DefaultError{
 			StatusField: "foo-status",
