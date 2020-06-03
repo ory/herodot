@@ -25,24 +25,25 @@ import (
 	"net/http"
 
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
+
+	"github.com/ory/x/logrusx"
 )
 
 type jsonError struct {
 	Error *DefaultError `json:"error"`
 }
 
-type reporter func(logger logrus.FieldLogger, args ...interface{}) func(w http.ResponseWriter, r *http.Request, code int, err error)
+type reporter func(logger *logrusx.Logger, args ...interface{}) func(w http.ResponseWriter, r *http.Request, code int, err error)
 
 // json outputs JSON.
 type JSONWriter struct {
-	logger        logrus.FieldLogger
+	logger        *logrusx.Logger
 	Reporter      reporter
 	ErrorEnhancer func(r *http.Request, err error) interface{}
 }
 
 // NewJSONWriter returns a json
-func NewJSONWriter(logger logrus.FieldLogger) *JSONWriter {
+func NewJSONWriter(logger *logrusx.Logger) *JSONWriter {
 	writer := &JSONWriter{logger: logger}
 
 	writer.Reporter = DefaultErrorReporter

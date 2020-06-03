@@ -24,33 +24,3 @@ type statusCodeCarrier interface {
 	// StatusCode returns the status code of this error.
 	StatusCode() int
 }
-
-// requestIDCarrier can be implemented by an error to support error contexts.
-type requestIDCarrier interface {
-	// RequestID returns the ID of the request that caused the error, if applicable.
-	RequestID() string
-}
-
-// reasonCarrier can be implemented by an error to support error contexts.
-type reasonCarrier interface {
-	// Reason returns the reason for the error, if applicable.
-	Reason() string
-}
-
-// debugCarrier can be implemented by an error to support error contexts.
-type debugCarrier interface {
-	// Debug returns debugging information for the error, if applicable.
-	Debug() string
-}
-
-// statusCarrier can be implemented by an error to support error contexts.
-type statusCarrier interface {
-	// ID returns the error id, if applicable.
-	Status() string
-}
-
-// detailsCarrier can be implemented by an error to support error contexts.
-type detailsCarrier interface {
-	// Details returns details on the error, if applicable.
-	Details() map[string]interface{}
-}

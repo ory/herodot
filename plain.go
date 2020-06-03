@@ -20,23 +20,23 @@
 package herodot
 
 import (
+	"fmt"
 	"net/http"
 
-	"fmt"
-
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
+
+	"github.com/ory/x/logrusx"
 )
 
 // json outputs JSON.
 type TextWriter struct {
-	logger      logrus.FieldLogger
+	logger      *logrusx.Logger
 	Reporter    reporter
 	contentType string
 }
 
 // NewPlainWriter returns a json
-func NewTextWriter(logger logrus.FieldLogger, contentType string) *TextWriter {
+func NewTextWriter(logger *logrusx.Logger, contentType string) *TextWriter {
 	if contentType == "" {
 		contentType = "plain"
 	}
