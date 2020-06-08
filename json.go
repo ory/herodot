@@ -87,24 +87,28 @@ func (h *JSONWriter) WriteCreated(w http.ResponseWriter, r *http.Request, locati
 // WriteError writes an error to ResponseWriter and tries to extract the error's status code by
 // asserting statusCodeCarrier. If the error does not implement statusCodeCarrier, the status code
 // is set to 500.
-func (h *JSONWriter) WriteError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *JSONWriter) WriteError(w http.ResponseWriter, r *http.Request, err error, opts ...Option) {
 	if c := statusCodeCarrier(nil); stderr.As(err, &c) {
 		h.WriteErrorCode(w, r, c.StatusCode(), err)
 		return
 	}
 
-	h.WriteErrorCode(w, r, http.StatusInternalServerError, err)
+	h.WriteErrorCode(w, r, http.StatusInternalServerError, err, opts...)
 	return
 }
 
 // WriteErrorCode writes an error to ResponseWriter and forces an error code.
-func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code int, err error) {
+func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code int, err error, opts ...Option) {
+	o := newOptions(opts)
+
 	if code == 0 {
 		code = http.StatusInternalServerError
 	}
 
-	// All errors land here, so it's a really good idea to do the logging here as well!
-	h.Reporter(h.logger, "An error occurred while handling a request")(w, r, code, toError(err))
+	if !o.noLog {
+		// All errors land here, so it's a really good idea to do the logging here as well!
+		h.Reporter(h.logger, "An error occurred while handling a request")(w, r, code, toError(err))
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
