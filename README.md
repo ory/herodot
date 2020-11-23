@@ -15,7 +15,7 @@ Herodot is used by [ORY Hydra](https://github.com/ory/hydra) and serves millions
 
 ## Installation
 
-Herodot is versioned using [glide](https://github.com/Masterminds/glide) and works best with
+Herodot is versioned using [go modules](https://blog.golang.org/using-go-modules) and works best with
 [pkg/errors](https://github.com/pkg/errors). To install it, run
 
 ```
