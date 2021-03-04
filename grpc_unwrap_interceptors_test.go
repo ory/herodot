@@ -6,23 +6,28 @@ import (
 	"net"
 	"testing"
 
-	"github.com/phayes/freeport"
 	"github.com/pkg/errors"
+	"google.golang.org/grpc/codes"
+
+	"github.com/phayes/freeport"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/examples/helloworld/helloworld"
 	"google.golang.org/grpc/status"
 )
 
-type internalErrServer struct {
+type testingGreeter struct {
 	helloworld.UnimplementedGreeterServer
+	shouldErr bool
 }
 
-func (*internalErrServer) SayHello(context.Context, *helloworld.HelloRequest) (*helloworld.HelloReply, error) {
-	return nil, errors.WithStack(ErrInternalServerError)
+func (g *testingGreeter) SayHello(context.Context, *helloworld.HelloRequest) (*helloworld.HelloReply, error) {
+	if g.shouldErr {
+		return nil, errors.WithStack(ErrInternalServerError)
+	}
+	return &helloworld.HelloReply{Message: "see, no error"}, nil
 }
 
 func TestGRPCInterceptors(t *testing.T) {
@@ -30,8 +35,9 @@ func TestGRPCInterceptors(t *testing.T) {
 	require.NoError(t, err)
 	addr := fmt.Sprintf("127.0.0.1:%d", port)
 
+	server := &testingGreeter{}
 	s := grpc.NewServer(grpc.UnaryInterceptor(UnaryErrorUnwrapInterceptor))
-	helloworld.RegisterGreeterServer(s, &internalErrServer{})
+	helloworld.RegisterGreeterServer(s, server)
 	l, err := net.Listen("tcp", addr)
 
 	serveErr := &errgroup.Group{}
@@ -43,9 +49,31 @@ func TestGRPCInterceptors(t *testing.T) {
 	require.NoError(t, err)
 	c := helloworld.NewGreeterClient(conn)
 
-	_, err = c.SayHello(context.Background(), &helloworld.HelloRequest{})
-	require.NotNil(t, err)
-	assert.Equal(t, codes.Internal, status.Code(err))
+	for _, tc := range []struct {
+		name      string
+		shouldErr bool
+	}{
+		{
+			name:      "no error",
+			shouldErr: false,
+		},
+		{
+			name:      "internal error",
+			shouldErr: true,
+		},
+	} {
+		t.Run("case="+tc.name, func(t *testing.T) {
+			server.shouldErr = tc.shouldErr
+
+			resp, err := c.SayHello(context.Background(), &helloworld.HelloRequest{})
+			if tc.shouldErr {
+				assert.Equal(t, codes.Internal, status.Code(err))
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, "see, no error", resp.Message)
+			}
+		})
+	}
 
 	s.Stop()
 	require.NoError(t, serveErr.Wait())
