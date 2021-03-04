@@ -1,10 +1,14 @@
 package herodot
 
 import (
-	sdterr "errors"
+	stderr "errors"
 	"fmt"
 	"io"
 	"net/http"
+
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/pkg/errors"
 
@@ -12,13 +16,14 @@ import (
 )
 
 type DefaultError struct {
-	CodeField    int                    `json:"code,omitempty"`
-	StatusField  string                 `json:"status,omitempty"`
-	RIDField     string                 `json:"request,omitempty"`
-	ReasonField  string                 `json:"reason,omitempty"`
-	DebugField   string                 `json:"debug,omitempty"`
-	DetailsField map[string]interface{} `json:"details,omitempty"`
-	ErrorField   string                 `json:"message"`
+	CodeField     int                    `json:"code,omitempty"`
+	GRPCCodeField codes.Code             `json:"grpc_code,omitempty"`
+	StatusField   string                 `json:"status,omitempty"`
+	RIDField      string                 `json:"request,omitempty"`
+	ReasonField   string                 `json:"reason,omitempty"`
+	DebugField    string                 `json:"debug,omitempty"`
+	DetailsField  map[string]interface{} `json:"details,omitempty"`
+	ErrorField    string                 `json:"message"`
 
 	err error
 }
@@ -29,7 +34,7 @@ func (e *DefaultError) StackTrace() (trace errors.StackTrace) {
 		return
 	}
 
-	if st := stackTracer(nil); sdterr.As(e.err, &st) {
+	if st := stackTracer(nil); stderr.As(e.err, &st) {
 		trace = st.StackTrace()
 	}
 
@@ -50,7 +55,7 @@ func (e DefaultError) WithWrap(err error) *DefaultError {
 }
 
 func (e *DefaultError) WithTrace(err error) *DefaultError {
-	if st := stackTracer(nil); !sdterr.As(e.err, &st) {
+	if st := stackTracer(nil); !stderr.As(e.err, &st) {
 		e.Wrap(errors.WithStack(err))
 	} else {
 		e.Wrap(err)
@@ -99,6 +104,32 @@ func (e DefaultError) Details() map[string]interface{} {
 
 func (e DefaultError) StatusCode() int {
 	return e.CodeField
+}
+
+func (e DefaultError) GRPCStatus() *status.Status {
+	s := status.New(e.GRPCCodeField, e.Error())
+
+	st := e.StackTrace()
+	var stackEntries []string
+	if st != nil {
+		stackEntries = make([]string, len(st))
+		for i, f := range st {
+			stackEntries[i] = fmt.Sprintf("%+v", f)
+		}
+	}
+
+	s, err := s.WithDetails(
+		&errdetails.DebugInfo{
+			StackEntries: stackEntries,
+			Detail:       e.Debug(),
+		},
+	)
+	if err != nil {
+		// this error only occurs if the code is broken AF
+		panic(err)
+	}
+
+	return s
 }
 
 func (e DefaultError) WithReason(reason string) *DefaultError {
@@ -173,22 +204,22 @@ func ToDefaultError(err error, id string) *DefaultError {
 	}
 	de.Wrap(err)
 
-	if c := errorsx.ReasonCarrier(nil); sdterr.As(err, &c) {
+	if c := errorsx.ReasonCarrier(nil); stderr.As(err, &c) {
 		de.ReasonField = c.Reason()
 	}
-	if c := errorsx.RequestIDCarrier(nil); sdterr.As(err, &c) && c.RequestID() != "" {
+	if c := errorsx.RequestIDCarrier(nil); stderr.As(err, &c) && c.RequestID() != "" {
 		de.RIDField = c.RequestID()
 	}
-	if c := errorsx.DetailsCarrier(nil); sdterr.As(err, &c) && c.Details() != nil {
+	if c := errorsx.DetailsCarrier(nil); stderr.As(err, &c) && c.Details() != nil {
 		de.DetailsField = c.Details()
 	}
-	if c := errorsx.StatusCarrier(nil); sdterr.As(err, &c) && c.Status() != "" {
+	if c := errorsx.StatusCarrier(nil); stderr.As(err, &c) && c.Status() != "" {
 		de.StatusField = c.Status()
 	}
-	if c := errorsx.StatusCodeCarrier(nil); sdterr.As(err, &c) && c.StatusCode() != 0 {
+	if c := errorsx.StatusCodeCarrier(nil); stderr.As(err, &c) && c.StatusCode() != 0 {
 		de.CodeField = c.StatusCode()
 	}
-	if c := errorsx.DebugCarrier(nil); sdterr.As(err, &c) {
+	if c := errorsx.DebugCarrier(nil); stderr.As(err, &c) {
 		de.DebugField = c.Debug()
 	}
 
