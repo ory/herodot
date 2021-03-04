@@ -19,7 +19,7 @@
  */
 package herodot
 
-// statusCodeCarrier can be implemented by an error to support setting status codes in the error itself.
+// statusCodeCarrier can be implemented by an error to support setting http status codes in the error itself.
 type statusCodeCarrier interface {
 	// StatusCode returns the status code of this error.
 	StatusCode() int
