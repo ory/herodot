@@ -1,0 +1,30 @@
+name: "Run Tests and Lint Code"
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  test:
+    name: Run Tests and Lint Code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.16.0'
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+      - run: make tools
+      - run: go-acc -o coverage.out ./... -- -v -failfast -timeout=20m -tags sqlite
+      - run: gcov2lcov -infile=coverage.out -outfile=coverage.lcov
+      - name: Coveralls
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: coverage.lcov
