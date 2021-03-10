@@ -3,7 +3,7 @@ package herodot
 import (
 	"net/http"
 
-	"github.com/golang/gddo/httputil"
+	"github.com/ory/herodot/httputil"
 
 	"github.com/ory/x/logrusx"
 )
