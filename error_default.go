@@ -17,7 +17,7 @@ import (
 
 type DefaultError struct {
 	CodeField     int                    `json:"code,omitempty"`
-	GRPCCodeField codes.Code             `json:"grpc_code,omitempty"`
+	GRPCCodeField codes.Code             `json:"-"`
 	StatusField   string                 `json:"status,omitempty"`
 	RIDField      string                 `json:"request,omitempty"`
 	ReasonField   string                 `json:"reason,omitempty"`
