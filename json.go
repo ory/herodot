@@ -20,6 +20,7 @@
 package herodot
 
 import (
+	"bytes"
 	"encoding/json"
 	stderr "errors"
 	"net/http"
@@ -34,6 +35,13 @@ type jsonError struct {
 }
 
 type reporter func(logger *logrusx.Logger, args ...interface{}) func(w http.ResponseWriter, r *http.Request, code int, err error)
+
+type EncoderOptions func(*json.Encoder)
+
+// UnescapedHTML prevents HTML entities &, <, > from being unicode-escaped.
+func UnescapedHTML(enc *json.Encoder) {
+	enc.SetEscapeHTML(false)
+}
 
 // json outputs JSON.
 type JSONWriter struct {
@@ -56,13 +64,19 @@ func defaultJSONErrorEnhancer(r *http.Request, err error) interface{} {
 }
 
 // Write a response object to the ResponseWriter with status code 200.
-func (h *JSONWriter) Write(w http.ResponseWriter, r *http.Request, e interface{}) {
-	h.WriteCode(w, r, http.StatusOK, e)
+func (h *JSONWriter) Write(w http.ResponseWriter, r *http.Request, e interface{}, opts ...EncoderOptions) {
+	h.WriteCode(w, r, http.StatusOK, e, opts...)
 }
 
 // WriteCode writes a response object to the ResponseWriter and sets a response code.
-func (h *JSONWriter) WriteCode(w http.ResponseWriter, r *http.Request, code int, e interface{}) {
-	js, err := json.Marshal(e)
+func (h *JSONWriter) WriteCode(w http.ResponseWriter, r *http.Request, code int, e interface{}, opts ...EncoderOptions) {
+	bs := new(bytes.Buffer)
+	enc := json.NewEncoder(bs)
+	for _, opt := range opts {
+		opt(enc)
+	}
+
+	err := enc.Encode(e)
 	if err != nil {
 		h.WriteError(w, r, errors.WithStack(err))
 		return
@@ -74,7 +88,7 @@ func (h *JSONWriter) WriteCode(w http.ResponseWriter, r *http.Request, code int,
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(code)
-	_, _ = w.Write(js)
+	_, _ = w.Write(bs.Bytes())
 }
 
 // WriteCreated writes a response object to the ResponseWriter with status code 201 and
