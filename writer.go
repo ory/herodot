@@ -26,10 +26,10 @@ import (
 // Writer is a helper to write arbitrary data to a ResponseWriter
 type Writer interface {
 	// Write a response object to the ResponseWriter with status code 200.
-	Write(w http.ResponseWriter, r *http.Request, e interface{})
+	Write(w http.ResponseWriter, r *http.Request, e interface{}, opts ...EncoderOptions)
 
 	// WriteCode writes a response object to the ResponseWriter and sets a response code.
-	WriteCode(w http.ResponseWriter, r *http.Request, code int, e interface{})
+	WriteCode(w http.ResponseWriter, r *http.Request, code int, e interface{}, opts ...EncoderOptions)
 
 	// WriteCreated writes a response object to the ResponseWriter with status code 201 and
 	// the Location header set to location.
