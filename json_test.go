@@ -24,6 +24,7 @@ import (
 	"encoding/json"
 	stderr "errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -221,5 +222,23 @@ func TestWriteCodeJSONDefault(t *testing.T) {
 	result := map[string]string{}
 	require.Nil(t, json.NewDecoder(resp.Body).Decode(&result))
 	assert.Equal(t, foo["foo"], result["foo"])
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
+func TestWriteCodeJSONUnescapedHTML(t *testing.T) {
+	foo := "b&r"
+
+	h := NewJSONWriter(nil)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h.WriteCode(w, r, 0, &foo, UnescapedHTML)
+	}))
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/do")
+	require.Nil(t, err)
+
+	result, err := io.ReadAll(resp.Body)
+	require.Nil(t, err)
+	assert.Equal(t, fmt.Sprintf("\"%s\"\n", foo), string(result))
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
