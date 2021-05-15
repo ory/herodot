@@ -15,17 +15,52 @@ import (
 	"github.com/ory/x/errorsx"
 )
 
+// swagger:model genericError
 type DefaultError struct {
-	CodeField     int                    `json:"code,omitempty"`
-	GRPCCodeField codes.Code             `json:"-"`
-	StatusField   string                 `json:"status,omitempty"`
-	RIDField      string                 `json:"request,omitempty"`
-	ReasonField   string                 `json:"reason,omitempty"`
-	DebugField    string                 `json:"debug,omitempty"`
-	DetailsField  map[string]interface{} `json:"details,omitempty"`
-	ErrorField    string                 `json:"message"`
+	// The status code
+	//
+	// example: 404
+	CodeField int `json:"code,omitempty"`
 
-	err error
+	// The status description
+	//
+	// example: Not Found
+	StatusField string `json:"status,omitempty"`
+
+	// The request ID
+	//
+	// The request ID is often exposed internally in order to trace
+	// errors across service architectures. This is often a UUID.
+	//
+	// example: d7ef54b1-ec15-46e6-bccb-524b82c035e6
+	RIDField string `json:"request,omitempty"`
+
+	// A human-readable reason for the error
+	//
+	// example: User with ID 1234 does not exist.
+	ReasonField string `json:"reason,omitempty"`
+
+	// Debug information
+	//
+	// This field is often not exposed to protect against leaking
+	// sensitive information.
+	//
+	// example: SQL field "foo" is not a bool.
+	DebugField string `json:"debug,omitempty"`
+
+	// Further error details
+	DetailsField map[string]interface{} `json:"details,omitempty"`
+
+	// Error message
+	//
+	// The error's message.
+	//
+	// example: The resource could not be found
+	// required: true
+	ErrorField string `json:"message"`
+
+	GRPCCodeField codes.Code `json:"-"`
+	err           error
 }
 
 // StackTrace returns the error's stack trace.
