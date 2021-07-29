@@ -1,10 +1,12 @@
 module github.com/ory/herodot
 
+replace github.com/oleiade/reflections => github.com/oleiade/reflections v1.0.1
+
 require (
 	github.com/google/go-cmp v0.5.5
 	github.com/jandelgado/gcov2lcov v1.0.4
 	github.com/ory/go-acc v0.2.6
-	github.com/ory/x v0.0.250
+	github.com/ory/x v0.0.272
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
 	github.com/pkg/errors v0.9.1
 	github.com/sqs/goreturns v0.0.0-20181028201513-538ac6014518
