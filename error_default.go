@@ -17,6 +17,11 @@ import (
 
 // swagger:model genericError
 type DefaultError struct {
+	// The error ID
+	//
+	// Useful when trying to identify various errors in application logic.
+	IDField string `json:"id,omitempty"`
+
 	// The status code
 	//
 	// example: 404
@@ -103,10 +108,12 @@ func (e DefaultError) Is(err error) bool {
 	case DefaultError:
 		return e.ErrorField == te.ErrorField &&
 			e.StatusField == te.StatusField &&
+			e.IDField == te.IDField &&
 			e.CodeField == te.CodeField
 	case *DefaultError:
 		return e.ErrorField == te.ErrorField &&
 			e.StatusField == te.StatusField &&
+			e.IDField == te.IDField &&
 			e.CodeField == te.CodeField
 	default:
 		return false
@@ -115,6 +122,10 @@ func (e DefaultError) Is(err error) bool {
 
 func (e DefaultError) Status() string {
 	return e.StatusField
+}
+
+func (e DefaultError) ID() string {
+	return e.IDField
 }
 
 func (e DefaultError) Error() string {
@@ -214,25 +225,26 @@ func (e DefaultError) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
-			fmt.Fprintf(s, "rid=%s\n", e.RIDField)
-			fmt.Fprintf(s, "error=%s\n", e.ErrorField)
-			fmt.Fprintf(s, "reason=%s\n", e.ReasonField)
-			fmt.Fprintf(s, "details=%+v\n", e.DetailsField)
-			fmt.Fprintf(s, "debug=%s\n", e.DebugField)
+			_, _ = fmt.Fprintf(s, "id=%s\n", e.IDField)
+			_, _ = fmt.Fprintf(s, "rid=%s\n", e.RIDField)
+			_, _ = fmt.Fprintf(s, "error=%s\n", e.ErrorField)
+			_, _ = fmt.Fprintf(s, "reason=%s\n", e.ReasonField)
+			_, _ = fmt.Fprintf(s, "details=%+v\n", e.DetailsField)
+			_, _ = fmt.Fprintf(s, "debug=%s\n", e.DebugField)
 			e.StackTrace().Format(s, verb)
 			return
 		}
 		fallthrough
 	case 's':
-		io.WriteString(s, e.ErrorField)
+		_, _ = io.WriteString(s, e.ErrorField)
 	case 'q':
-		fmt.Fprintf(s, "%q", e.ErrorField)
+		_, _ = fmt.Fprintf(s, "%q", e.ErrorField)
 	}
 }
 
-func ToDefaultError(err error, id string) *DefaultError {
+func ToDefaultError(err error, requestID string) *DefaultError {
 	de := &DefaultError{
-		RIDField:     id,
+		RIDField:     requestID,
 		CodeField:    http.StatusInternalServerError,
 		DetailsField: map[string]interface{}{},
 		ErrorField:   err.Error(),
