@@ -65,6 +65,13 @@ func TestToDefaultError(t *testing.T) {
 		assert.EqualValues(t, "fallback-rid", ToDefaultError(new(DefaultError), "fallback-rid").RequestID())
 	})
 
+	t.Run("case=id", func(t *testing.T) {
+		e := &DefaultError{
+			IDField: "foo-rid",
+		}
+		assert.EqualValues(t, "foo-rid", ToDefaultError(e, "").ID())
+	})
+
 	t.Run("case=code", func(t *testing.T) {
 		e := &DefaultError{CodeField: 501}
 		assert.EqualValues(t, 501, ToDefaultError(e, "").StatusCode())

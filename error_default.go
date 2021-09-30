@@ -274,6 +274,9 @@ func ToDefaultError(err error, requestID string) *DefaultError {
 	if c := errorsx.DebugCarrier(nil); stderr.As(err, &c) {
 		de.DebugField = c.Debug()
 	}
+	if c := errorsx.IDCarrier(nil); stderr.As(err, &c) {
+		de.IDField = c.ID()
+	}
 
 	if de.StatusField == "" {
 		de.StatusField = http.StatusText(de.StatusCode())
