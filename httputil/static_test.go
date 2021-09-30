@@ -75,7 +75,7 @@ var fileServerTests = []*struct {
 			"Etag":           {testEtag},
 			"Cache-Control":  {"public, max-age=3"},
 			"Content-Length": {testContentLength},
-			"Content-Type":   {"application/octet-stream"},
+			"Content-Type":   {"text/x-go; charset=utf-8"},
 		},
 	},
 	{
@@ -90,7 +90,7 @@ var fileServerTests = []*struct {
 			"Etag":           {testEtag},
 			"Cache-Control":  {"public, max-age=3"},
 			"Content-Length": {testContentLength},
-			"Content-Type":   {"application/octet-stream"},
+			"Content-Type":   {"text/x-go; charset=utf-8"},
 		},
 	},
 	{
@@ -105,7 +105,7 @@ var fileServerTests = []*struct {
 			"Etag":           {testEtag},
 			"Cache-Control":  {"public, max-age=31536000"},
 			"Content-Length": {testContentLength},
-			"Content-Type":   {"application/octet-stream"},
+			"Content-Type":   {"text/x-go; charset=utf-8"},
 		},
 	},
 	{
@@ -120,7 +120,7 @@ var fileServerTests = []*struct {
 			"Etag":           {testEtag},
 			"Cache-Control":  {"public, max-age=3"},
 			"Content-Length": {testContentLength},
-			"Content-Type":   {"application/octet-stream"},
+			"Content-Type":   {"text/x-go; charset=utf-8"},
 		},
 		empty: true,
 	},
@@ -152,8 +152,8 @@ func testStaticServer(t *testing.T, f func(*httputil.StaticServer) http.Handler)
 			t.Errorf("%s, status=%d, want %d", tt.name, w.Code, tt.status)
 		}
 
-		if !cmp.Equal(w.HeaderMap, tt.header) {
-			t.Errorf("%s\n\theader=%v,\n\twant   %v", tt.name, w.HeaderMap, tt.header)
+		if !cmp.Equal(w.Header(), tt.header) {
+			t.Errorf("%s\n\theader=%v,\n\twant   %v", tt.name, w.Header(), tt.header)
 		}
 
 		empty := w.Body.Len() == 0
