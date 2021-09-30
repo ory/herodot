@@ -211,7 +211,7 @@ func skipSpace(s string) (rest string) {
 	return s[i:]
 }
 
-func expectToken(s string) (token, rest string) {
+func expectToken(s string) (string, string) {
 	i := 0
 	for ; i < len(s); i++ {
 		if octetTypes[s[i]]&isToken == 0 {
