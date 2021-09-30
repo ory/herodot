@@ -94,6 +94,11 @@ func (e DefaultError) WithWrap(err error) *DefaultError {
 	return &e
 }
 
+func (e DefaultError) WithID(id string) *DefaultError {
+	e.IDField = id
+	return &e
+}
+
 func (e *DefaultError) WithTrace(err error) *DefaultError {
 	if st := stackTracer(nil); !stderr.As(e.err, &st) {
 		e.Wrap(errors.WithStack(err))
