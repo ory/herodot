@@ -82,7 +82,7 @@ func TestWriteError(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprintf("case=%d", k), func(t *testing.T) {
-			var j jsonError
+			var j ErrorContainer
 
 			h := NewJSONWriter(nil)
 			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -136,7 +136,7 @@ func TestWriteErrorNoEnrichment(t *testing.T) {
 }
 
 func TestWriteErrorCode(t *testing.T) {
-	var j jsonError
+	var j ErrorContainer
 
 	h := NewJSONWriter(nil)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
