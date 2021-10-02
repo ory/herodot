@@ -30,7 +30,7 @@ import (
 	"github.com/ory/x/logrusx"
 )
 
-type jsonError struct {
+type ErrorContainer struct {
 	Error *DefaultError `json:"error"`
 }
 
@@ -59,8 +59,15 @@ func NewJSONWriter(logger *logrusx.Logger) *JSONWriter {
 	return writer
 }
 
+type ErrorEnhancer interface {
+	EnhanceJSONError() interface{}
+}
+
 func defaultJSONErrorEnhancer(r *http.Request, err error) interface{} {
-	return &jsonError{Error: ToDefaultError(err, r.Header.Get("X-Request-ID"))}
+	if e, ok := err.(ErrorEnhancer); ok {
+		return e.EnhanceJSONError()
+	}
+	return &ErrorContainer{Error: ToDefaultError(err, r.Header.Get("X-Request-ID"))}
 }
 
 // Write a response object to the ResponseWriter with status code 200.
@@ -135,6 +142,6 @@ func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code
 
 	if err := json.NewEncoder(w).Encode(payload); err != nil {
 		// There was an error, but there's actually not a lot we can do except log that this happened.
-		h.Reporter(h.logger, "Could not write jsonError to response writer")(w, r, code, errors.WithStack(err))
+		h.Reporter(h.logger, "Could not write ErrorContainer to response writer")(w, r, code, errors.WithStack(err))
 	}
 }
