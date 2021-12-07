@@ -64,6 +64,14 @@ type DefaultError struct {
 	// required: true
 	ErrorField string `json:"message"`
 
+	// Temporary marks an error as temporary.
+	//
+	// Temporary errors are usually caused by a temporary issue and should be
+	// retried by the client after a reasonable backoff.
+	//
+	// required: true
+	TemporaryField bool `json:"temporary"`
+
 	GRPCCodeField codes.Code `json:"-"`
 	err           error
 }
@@ -157,6 +165,10 @@ func (e DefaultError) StatusCode() int {
 	return e.CodeField
 }
 
+func (e DefaultError) Temporary() bool {
+	return e.TemporaryField
+}
+
 func (e DefaultError) GRPCStatus() *status.Status {
 	s := status.New(e.GRPCCodeField, e.Error())
 
@@ -223,6 +235,11 @@ func (e DefaultError) WithDetailf(key string, message string, args ...interface{
 		e.DetailsField = map[string]interface{}{}
 	}
 	e.DetailsField[key] = fmt.Sprintf(message, args...)
+	return &e
+}
+
+func (e DefaultError) WithTemporary(temp bool) *DefaultError {
+	e.TemporaryField = temp
 	return &e
 }
 
