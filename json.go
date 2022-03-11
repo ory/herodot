@@ -26,15 +26,15 @@ import (
 	"net/http"
 
 	"github.com/pkg/errors"
-
-	"github.com/ory/x/logrusx"
 )
 
 type ErrorContainer struct {
 	Error *DefaultError `json:"error"`
 }
 
-type reporter func(logger *logrusx.Logger, args ...interface{}) func(w http.ResponseWriter, r *http.Request, code int, err error)
+type ErrorReporter interface {
+	ReportError(r *http.Request, code int, err error, args ...interface{})
+}
 
 type EncoderOptions func(*json.Encoder)
 
@@ -43,18 +43,21 @@ func UnescapedHTML(enc *json.Encoder) {
 	enc.SetEscapeHTML(false)
 }
 
-// json outputs JSON.
+// JSONWriter writes JSON responses (obviously).
 type JSONWriter struct {
-	logger        *logrusx.Logger
-	Reporter      reporter
+	Reporter      ErrorReporter
 	ErrorEnhancer func(r *http.Request, err error) interface{}
 }
 
-// NewJSONWriter returns a json
-func NewJSONWriter(logger *logrusx.Logger) *JSONWriter {
-	writer := &JSONWriter{logger: logger}
+func NewJSONWriter(reporter ErrorReporter) *JSONWriter {
+	writer := &JSONWriter{
+		Reporter:      reporter,
+		ErrorEnhancer: defaultJSONErrorEnhancer,
+	}
+	if writer.Reporter == nil {
+		writer.Reporter = &stdReporter{}
+	}
 
-	writer.Reporter = DefaultErrorReporter
 	writer.ErrorEnhancer = defaultJSONErrorEnhancer
 	return writer
 }
@@ -128,7 +131,7 @@ func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code
 
 	if !o.noLog {
 		// All errors land here, so it's a really good idea to do the logging here as well!
-		h.Reporter(h.logger, "An error occurred while handling a request")(w, r, code, toError(err))
+		h.Reporter.ReportError(r, code, toError(err), "An error occurred while handling a request")
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -142,6 +145,6 @@ func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code
 
 	if err := json.NewEncoder(w).Encode(payload); err != nil {
 		// There was an error, but there's actually not a lot we can do except log that this happened.
-		h.Reporter(h.logger, "Could not write ErrorContainer to response writer")(w, r, code, errors.WithStack(err))
+		h.Reporter.ReportError(r, code, errors.WithStack(err), "Could not write ErrorContainer to response writer")
 	}
 }

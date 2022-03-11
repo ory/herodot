@@ -1,26 +1,20 @@
 package herodot
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/pkg/errors"
-
-	"github.com/ory/x/logrusx"
 )
 
 type stackTracer interface {
 	StackTrace() errors.StackTrace
 }
 
-func DefaultErrorReporter(logger *logrusx.Logger, args ...interface{}) func(w http.ResponseWriter, r *http.Request, code int, err error) {
-	return func(w http.ResponseWriter, r *http.Request, code int, err error) {
-		if logger == nil {
-			logger = logrusx.New("", "")
-			logger.Warn("No logger was set in json, defaulting to standard logger.")
-		}
+type stdReporter struct{}
 
-		logger.WithError(err).WithRequest(r).WithField("http_response", map[string]interface{}{
-			"status_code": code,
-		}).Error(args...)
-	}
+var _ ErrorReporter = (*stdReporter)(nil)
+
+func (s *stdReporter) ReportError(r *http.Request, code int, err error, args ...interface{}) {
+	fmt.Printf("ERROR: %s\n  Request: %v\n  Response Code: %d\n  Further Info: %v\n", err, r, code, args)
 }

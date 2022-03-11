@@ -19,8 +19,8 @@ jobs:
         with:
           go-version: '^1.16.0'
       - run: make tools
-      - run: go-acc -o coverage.out ./... -- -v -failfast -timeout=20m -tags sqlite
-      - run: gcov2lcov -infile=coverage.out -outfile=coverage.lcov
+      - run: .bin/go-acc -o coverage.out ./... -- -v -failfast -timeout=20m -tags sqlite
+      - run: .bin/gcov2lcov -infile=coverage.out -outfile=coverage.lcov
       - name: Coveralls
         uses: coverallsapp/github-action@master
         with:
