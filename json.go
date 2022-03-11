@@ -54,6 +54,9 @@ func NewJSONWriter(reporter ErrorReporter) *JSONWriter {
 		Reporter:      reporter,
 		ErrorEnhancer: defaultJSONErrorEnhancer,
 	}
+	if writer.Reporter == nil {
+		writer.Reporter = &stdReporter{}
+	}
 
 	writer.ErrorEnhancer = defaultJSONErrorEnhancer
 	return writer

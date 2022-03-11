@@ -20,14 +20,13 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cast v1.4.1 // indirect
 	github.com/spf13/cobra v1.2.1 // indirect
-	github.com/sqs/goreturns v0.0.0-20181028201513-538ac6014518
 	github.com/stretchr/testify v1.7.0
 	golang.org/x/mod v0.5.1 // indirect
 	golang.org/x/net v0.0.0-20211020060615-d418f374d309 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20211020174200-9d6173849985 // indirect
 	golang.org/x/text v0.3.7 // indirect
-	golang.org/x/tools v0.1.7 // indirect
+	golang.org/x/tools v0.1.7
 	google.golang.org/genproto v0.0.0-20211020151524-b7c3a969101a
 	google.golang.org/grpc v1.42.0
 	google.golang.org/grpc/examples v0.0.0-20210304020650-930c79186c99
