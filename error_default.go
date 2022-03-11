@@ -11,8 +11,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/pkg/errors"
-
-	"github.com/ory/x/errorsx"
 )
 
 // swagger:model genericError
@@ -256,25 +254,25 @@ func ToDefaultError(err error, requestID string) *DefaultError {
 	}
 	de.Wrap(err)
 
-	if c := errorsx.ReasonCarrier(nil); stderr.As(err, &c) {
+	if c := ReasonCarrier(nil); stderr.As(err, &c) {
 		de.ReasonField = c.Reason()
 	}
-	if c := errorsx.RequestIDCarrier(nil); stderr.As(err, &c) && c.RequestID() != "" {
+	if c := RequestIDCarrier(nil); stderr.As(err, &c) && c.RequestID() != "" {
 		de.RIDField = c.RequestID()
 	}
-	if c := errorsx.DetailsCarrier(nil); stderr.As(err, &c) && c.Details() != nil {
+	if c := DetailsCarrier(nil); stderr.As(err, &c) && c.Details() != nil {
 		de.DetailsField = c.Details()
 	}
-	if c := errorsx.StatusCarrier(nil); stderr.As(err, &c) && c.Status() != "" {
+	if c := StatusCarrier(nil); stderr.As(err, &c) && c.Status() != "" {
 		de.StatusField = c.Status()
 	}
-	if c := errorsx.StatusCodeCarrier(nil); stderr.As(err, &c) && c.StatusCode() != 0 {
+	if c := StatusCodeCarrier(nil); stderr.As(err, &c) && c.StatusCode() != 0 {
 		de.CodeField = c.StatusCode()
 	}
-	if c := errorsx.DebugCarrier(nil); stderr.As(err, &c) {
+	if c := DebugCarrier(nil); stderr.As(err, &c) {
 		de.DebugField = c.Debug()
 	}
-	if c := errorsx.IDCarrier(nil); stderr.As(err, &c) {
+	if c := IDCarrier(nil); stderr.As(err, &c) {
 		de.IDField = c.ID()
 	}
 
@@ -283,4 +281,46 @@ func ToDefaultError(err error, requestID string) *DefaultError {
 	}
 
 	return de
+}
+
+// StatusCodeCarrier can be implemented by an error to support setting status codes in the error itself.
+type StatusCodeCarrier interface {
+	// StatusCode returns the status code of this error.
+	StatusCode() int
+}
+
+// RequestIDCarrier can be implemented by an error to support error contexts.
+type RequestIDCarrier interface {
+	// RequestID returns the ID of the request that caused the error, if applicable.
+	RequestID() string
+}
+
+// ReasonCarrier can be implemented by an error to support error contexts.
+type ReasonCarrier interface {
+	// Reason returns the reason for the error, if applicable.
+	Reason() string
+}
+
+// DebugCarrier can be implemented by an error to support error contexts.
+type DebugCarrier interface {
+	// Debug returns debugging information for the error, if applicable.
+	Debug() string
+}
+
+// StatusCarrier can be implemented by an error to support error contexts.
+type StatusCarrier interface {
+	// ID returns the error id, if applicable.
+	Status() string
+}
+
+// DetailsCarrier can be implemented by an error to support error contexts.
+type DetailsCarrier interface {
+	// Details returns details on the error, if applicable.
+	Details() map[string]interface{}
+}
+
+// IDCarrier can be implemented by an error to support error contexts.
+type IDCarrier interface {
+	// ID returns application error ID on the error, if applicable.
+	ID() string
 }

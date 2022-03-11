@@ -4,8 +4,6 @@ import (
 	"net/http"
 
 	"github.com/ory/herodot/httputil"
-
-	"github.com/ory/x/logrusx"
 )
 
 // NegotiationHandler automatically negotiates the content type with the request client.
@@ -17,11 +15,11 @@ type NegotiationHandler struct {
 }
 
 // NewNegotiationHandler creates a new NewNegotiationHandler.
-func NewNegotiationHandler(logger *logrusx.Logger) *NegotiationHandler {
+func NewNegotiationHandler(reporter ErrorReporter) *NegotiationHandler {
 	return &NegotiationHandler{
-		json:  NewJSONWriter(logger),
-		plain: NewTextWriter(logger, "plain"),
-		html:  NewTextWriter(logger, "html"),
+		json:  NewJSONWriter(reporter),
+		plain: NewTextWriter(reporter, "plain"),
+		html:  NewTextWriter(reporter, "html"),
 		types: []string{
 			"application/json",
 		},

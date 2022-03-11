@@ -24,29 +24,25 @@ import (
 	"net/http"
 
 	"github.com/pkg/errors"
-
-	"github.com/ory/x/logrusx"
 )
 
 // json outputs JSON.
 type TextWriter struct {
-	logger      *logrusx.Logger
-	Reporter    reporter
+	Reporter    ErrorReporter
 	contentType string
 }
 
 // NewPlainWriter returns a json
-func NewTextWriter(logger *logrusx.Logger, contentType string) *TextWriter {
+func NewTextWriter(reporter ErrorReporter, contentType string) *TextWriter {
 	if contentType == "" {
 		contentType = "plain"
 	}
 
 	writer := &TextWriter{
-		logger:      logger,
+		Reporter:    reporter,
 		contentType: "text/" + contentType,
 	}
 
-	writer.Reporter = DefaultErrorReporter
 	return writer
 }
 
@@ -98,7 +94,7 @@ func (h *TextWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code
 	}
 
 	// All errors land here, so it's a really good idea to do the logging here as well!
-	h.Reporter(h.logger, "An error occurred while handling a request")(w, r, code, e)
+	h.Reporter.ReportError(r, code, e, "An error occurred while handling a request")
 
 	w.Header().Set("Content-Type", h.contentType)
 	w.WriteHeader(code)
