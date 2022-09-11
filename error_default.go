@@ -13,7 +13,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// swagger:model genericError
 type DefaultError struct {
 	// The error ID
 	//
