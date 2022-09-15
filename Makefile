@@ -2,7 +2,7 @@ format: tools node_modules
 		goimports -w -local github.com/ory *.go . httputil
 		npm exec -- prettier --write .
 
-node_modules:
+node_modules: package-lock.json
 	npm ci
 	touch node_modules
 
