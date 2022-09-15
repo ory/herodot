@@ -1,5 +1,5 @@
 format: tools node_modules
-		goimports -w -local github.com/ory *.go . httputil
+		.bin/goimports -w -local github.com/ory *.go . httputil
 		npm exec -- prettier --write .
 
 node_modules: package-lock.json
