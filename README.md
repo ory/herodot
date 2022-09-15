@@ -81,7 +81,7 @@ func GetHandlerWithError(rw http.ResponseWriter, r *http.Request) {
         hd.WriteError(w, r, err)
         return
     }
-    
+
     // ...
 }
 
@@ -90,7 +90,7 @@ func GetHandlerWithErrorCode(rw http.ResponseWriter, r *http.Request) {
         hd.WriteErrorCode(w, r, http.StatusBadRequest, err)
         return
     }
-    
+
     // ...
 }
 ```
@@ -107,10 +107,8 @@ Herodot implements the error model of the well established
     "status": "some-status",
     "request": "foo",
     "reason": "some-reason",
-    "details": [
-      { "foo":"bar" }
-    ],
-    "message":"foo"
+    "details": [{ "foo": "bar" }],
+    "message": "foo"
   }
 }
 ```
