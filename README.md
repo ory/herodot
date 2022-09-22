@@ -6,16 +6,19 @@
 
 ---
 
-Herodot is a lightweight SDK for writing RESTful responses. It is comparable to [render](https://github.com/unrolled/render)
-but provides easier error handling. The error model implements the well established
-[Google API Design Guide](https://cloud.google.com/apis/design/errors). Herodot currently supports only JSON responses
-but can be extended easily.
+Herodot is a lightweight SDK for writing RESTful responses. It is comparable to
+[render](https://github.com/unrolled/render) but provides easier error handling.
+The error model implements the well established
+[Google API Design Guide](https://cloud.google.com/apis/design/errors). Herodot
+currently supports only JSON responses but can be extended easily.
 
-Herodot is used by [ORY Hydra](https://github.com/ory/hydra) and serves millions of requests already.
+Herodot is used by [ORY Hydra](https://github.com/ory/hydra) and serves millions
+of requests already.
 
 ## Installation
 
-Herodot is versioned using [go modules](https://blog.golang.org/using-go-modules) and works best with
+Herodot is versioned using
+[go modules](https://blog.golang.org/using-go-modules) and works best with
 [pkg/errors](https://github.com/pkg/errors). To install it, run
 
 ```
@@ -32,7 +35,8 @@ Using Herodot is straightforward. The examples below will help you get started.
 
 ### JSON
 
-Herodot supplies an interface, allowing to return errors in many data formats like XML and others. Currently, it supports only JSON.
+Herodot supplies an interface, allowing to return errors in many data formats
+like XML and others. Currently, it supports only JSON.
 
 #### Write responses
 
@@ -81,7 +85,7 @@ func GetHandlerWithError(rw http.ResponseWriter, r *http.Request) {
         hd.WriteError(w, r, err)
         return
     }
-    
+
     // ...
 }
 
@@ -90,7 +94,7 @@ func GetHandlerWithErrorCode(rw http.ResponseWriter, r *http.Request) {
         hd.WriteErrorCode(w, r, http.StatusBadRequest, err)
         return
     }
-    
+
     // ...
 }
 ```
@@ -98,7 +102,9 @@ func GetHandlerWithErrorCode(rw http.ResponseWriter, r *http.Request) {
 ### Errors
 
 Herodot implements the error model of the well established
-[Google API Design Guide](https://cloud.google.com/apis/design/errors). Additionally, it makes the fields `request` and `reason` available. A complete Herodot error response looks like this:
+[Google API Design Guide](https://cloud.google.com/apis/design/errors).
+Additionally, it makes the fields `request` and `reason` available. A complete
+Herodot error response looks like this:
 
 ```json
 {
@@ -107,13 +113,12 @@ Herodot implements the error model of the well established
     "status": "some-status",
     "request": "foo",
     "reason": "some-reason",
-    "details": [
-      { "foo":"bar" }
-    ],
-    "message":"foo"
+    "details": [{ "foo": "bar" }],
+    "message": "foo"
   }
 }
 ```
 
-To add context to your errors, implement `herodot.ErrorContextCarrier`. If you only want to set the status code of errors
-implement [herodot.StatusCodeCarrier](https://github.com/ory/herodot/blob/master/error.go#L22-L26).
+To add context to your errors, implement `herodot.ErrorContextCarrier`. If you
+only want to set the status code of errors implement
+[herodot.StatusCodeCarrier](https://github.com/ory/herodot/blob/master/error.go#L22-L26).
