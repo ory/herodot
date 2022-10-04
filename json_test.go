@@ -25,7 +25,6 @@ import (
 	stderr "errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -94,7 +93,7 @@ func TestWriteError(t *testing.T) {
 			resp, err := http.Get(ts.URL + "/do")
 			require.Nil(t, err)
 			defer resp.Body.Close()
-			body, _ := ioutil.ReadAll(resp.Body)
+			body, _ := io.ReadAll(resp.Body)
 
 			require.Nil(t, json.NewDecoder(bytes.NewBuffer(body)).Decode(&j), "%s", body)
 			assert.Equal(t, tc.expect.StatusCode(), resp.StatusCode, "%s", body)
@@ -105,6 +104,40 @@ func TestWriteError(t *testing.T) {
 			assert.Equal(t, tc.expect.Error(), j.Error.Error(), "%s", body)
 		})
 	}
+
+	t.Run("case=debug flag", func(t *testing.T) {
+		for _, tc := range []struct {
+			isDebug bool
+			desc    string
+		}{
+			{
+				isDebug: true,
+				desc:    "should be set",
+			},
+			{
+				isDebug: false,
+				desc:    "should not be set",
+			},
+		} {
+			t.Run(tc.desc, func(t *testing.T) {
+				h := NewJSONWriter(nil)
+				h.EnableDebug = tc.isDebug
+				ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					h.WriteError(w, r, &DefaultError{DebugField: "foo"})
+				}))
+				defer ts.Close()
+
+				resp, err := http.Get(ts.URL + "/do")
+				require.NoError(t, err)
+				defer resp.Body.Close()
+				body, _ := io.ReadAll(resp.Body)
+
+				var j ErrorContainer
+				require.NoError(t, json.NewDecoder(bytes.NewBuffer(body)).Decode(&j), "%s", body)
+				assert.Equal(t, tc.isDebug, j.Error.Debug() != "", "%s", body)
+			})
+		}
+	})
 }
 
 type testError struct {
@@ -129,7 +162,7 @@ func TestWriteErrorNoEnrichment(t *testing.T) {
 
 	resp, err := http.Get(ts.URL + "/do")
 	require.Nil(t, err)
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 
 	assert.EqualValues(t, `{"foo":"foo","bar":"bar"}
 `, string(body))

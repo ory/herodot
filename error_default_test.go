@@ -1,8 +1,11 @@
 package herodot
 
 import (
+	"encoding/json"
 	"net/http"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -82,5 +85,28 @@ func TestToDefaultError(t *testing.T) {
 		assert.EqualValues(t, "foobar", ToDefaultError(e, "").Status())
 
 		assert.EqualValues(t, 500, ToDefaultError(errors.New(""), "").StatusCode())
+	})
+}
+
+func TestMarshalJSON(t *testing.T) {
+	t.Run("case=without debug (default)", func(t *testing.T) {
+		e := &DefaultError{
+			ErrorField: "Some Error",
+			DebugField: "whatever",
+		}
+		j, err := json.Marshal(e)
+		require.NoError(t, err)
+		assert.JSONEq(t, `{"message":"Some Error"}`, string(j))
+	})
+
+	t.Run("case=with debug", func(t *testing.T) {
+		e := &DefaultError{
+			ErrorField:  "Some Error",
+			DebugField:  "whatever",
+			enableDebug: true,
+		}
+		j, err := json.Marshal(e)
+		require.NoError(t, err)
+		assert.JSONEq(t, `{"message":"Some Error", "debug": "whatever"}`, string(j))
 	})
 }

@@ -47,6 +47,7 @@ func UnescapedHTML(enc *json.Encoder) {
 type JSONWriter struct {
 	Reporter      ErrorReporter
 	ErrorEnhancer func(r *http.Request, err error) interface{}
+	EnableDebug   bool
 }
 
 func NewJSONWriter(reporter ErrorReporter) *JSONWriter {
@@ -141,6 +142,12 @@ func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code
 	var payload interface{} = err
 	if h.ErrorEnhancer != nil {
 		payload = h.ErrorEnhancer(r, err)
+	}
+	if de, ok := payload.(*DefaultError); ok {
+		de.enableDebug = h.EnableDebug
+	}
+	if de, ok := payload.(*ErrorContainer); ok {
+		de.Error.enableDebug = h.EnableDebug
 	}
 
 	if err := json.NewEncoder(w).Encode(payload); err != nil {
