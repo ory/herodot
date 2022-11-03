@@ -1,4 +1,5 @@
-format: tools node_modules
+format: .bin/ory tools node_modules
+	.bin/ory dev headers license --exclude=httputil
 	.bin/goimports -w -local github.com/ory *.go . httputil
 	npm exec -- prettier --write .
 
@@ -7,6 +8,10 @@ licenses: .bin/licenses node_modules  # checks open-source licenses
 
 .bin/licenses: Makefile
 	curl https://raw.githubusercontent.com/ory/ci/master/licenses/install | sh
+
+.bin/ory: Makefile
+	curl https://raw.githubusercontent.com/ory/meta/master/install.sh | bash -s -- -b .bin ory v0.1.47
+	touch .bin/ory
 
 node_modules: package-lock.json
 	npm ci
