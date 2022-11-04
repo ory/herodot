@@ -1,5 +1,5 @@
 format: .bin/ory tools node_modules
-	.bin/ory dev headers copyright --exclude=httputil
+	.bin/ory dev headers copyright --type=open-source --exclude=httputil
 	.bin/goimports -w -local github.com/ory *.go . httputil
 	npm exec -- prettier --write .
 
