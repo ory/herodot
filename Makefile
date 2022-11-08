@@ -1,7 +1,9 @@
+authors:  # updates the AUTHORS file
+	curl https://raw.githubusercontent.com/ory/ci/master/authors/authors.sh | env PRODUCT="Ory Herodot" bash
+
 format: .bin/ory tools node_modules
 	.bin/ory dev headers copyright --type=open-source --exclude=httputil
 	.bin/goimports -w -local github.com/ory *.go . httputil
-	curl https://raw.githubusercontent.com/ory/ci/master/authors/authors.sh | env PRODUCT="Ory Herodot" bash
 	npm exec -- prettier --write .
 
 licenses: .bin/licenses node_modules  # checks open-source licenses
