@@ -145,8 +145,9 @@ func TestWriteErrorNoEnrichment(t *testing.T) {
 	defer ts.Close()
 
 	resp, err := http.Get(ts.URL + "/do")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
 
 	assert.EqualValues(t, `{"foo":"foo","bar":"bar"}
 `, string(body))

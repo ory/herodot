@@ -9,6 +9,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -88,6 +91,24 @@ func TestToDefaultError(t *testing.T) {
 		assert.EqualValues(t, "foobar", ToDefaultError(e, "").Status())
 
 		assert.EqualValues(t, 500, ToDefaultError(errors.New(""), "").StatusCode())
+	})
+
+	t.Run("case=GRPCStatus", func(t *testing.T) {
+		expected, _ := status.New(codes.InvalidArgument, "message").WithDetails(
+			&errdetails.DebugInfo{Detail: "debug"},
+			&errdetails.ErrorInfo{Reason: "reason"},
+			&errdetails.RequestInfo{RequestId: "request_id"},
+		)
+
+		status := DefaultError{
+			ErrorField:    "message",
+			GRPCCodeField: codes.InvalidArgument,
+			DebugField:    "debug",
+			ReasonField:   "reason",
+			RIDField:      "request_id",
+		}.GRPCStatus()
+
+		assert.Equal(t, expected, status)
 	})
 }
 

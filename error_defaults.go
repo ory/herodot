@@ -41,7 +41,7 @@ var ErrBadRequest = DefaultError{
 	StatusField:   http.StatusText(http.StatusBadRequest),
 	ErrorField:    "The request was malformed or contained invalid parameters",
 	CodeField:     http.StatusBadRequest,
-	GRPCCodeField: codes.FailedPrecondition,
+	GRPCCodeField: codes.InvalidArgument,
 }
 
 var ErrUnsupportedMediaType = DefaultError{

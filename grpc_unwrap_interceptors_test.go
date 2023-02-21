@@ -42,6 +42,7 @@ func TestGRPCInterceptors(t *testing.T) {
 	s := grpc.NewServer(grpc.UnaryInterceptor(UnaryErrorUnwrapInterceptor))
 	helloworld.RegisterGreeterServer(s, server)
 	l, err := net.Listen("tcp", addr)
+	require.NoError(t, err)
 
 	serveErr := &errgroup.Group{}
 	serveErr.Go(func() error {
