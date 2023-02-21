@@ -3,6 +3,7 @@ module github.com/ory/herodot
 replace github.com/oleiade/reflections => github.com/oleiade/reflections v1.0.1
 
 require (
+	github.com/golang/protobuf v1.5.2
 	github.com/google/go-cmp v0.5.6
 	github.com/jandelgado/gcov2lcov v1.0.5
 	github.com/ory/go-acc v0.2.6

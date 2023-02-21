@@ -1,4 +1,4 @@
-// Copyright © 2022 Ory Corp
+// Copyright © 2023 Ory Corp
 // SPDX-License-Identifier: Apache-2.0
 
 package herodot
@@ -42,6 +42,7 @@ func TestGRPCInterceptors(t *testing.T) {
 	s := grpc.NewServer(grpc.UnaryInterceptor(UnaryErrorUnwrapInterceptor))
 	helloworld.RegisterGreeterServer(s, server)
 	l, err := net.Listen("tcp", addr)
+	require.NoError(t, err)
 
 	serveErr := &errgroup.Group{}
 	serveErr.Go(func() error {

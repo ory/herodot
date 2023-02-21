@@ -1,4 +1,4 @@
-// Copyright © 2022 Ory Corp
+// Copyright © 2023 Ory Corp
 // SPDX-License-Identifier: Apache-2.0
 
 package herodot
@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 )
 
@@ -180,18 +181,93 @@ func (e DefaultError) GRPCStatus() *status.Status {
 		}
 	}
 
-	s, err := s.WithDetails(
-		&errdetails.DebugInfo{
+	details := []proto.Message{}
+
+	if e.DebugField != "" || st != nil {
+		details = append(details, &errdetails.DebugInfo{
 			StackEntries: stackEntries,
 			Detail:       e.Debug(),
-		},
-	)
+		})
+	}
+
+	if e.ReasonField != "" {
+		details = append(details, &errdetails.ErrorInfo{
+			Reason: e.Reason(),
+		})
+	}
+
+	if e.RequestID() != "" {
+		details = append(details, &errdetails.RequestInfo{
+			RequestId: e.RequestID(),
+		})
+	}
+
+	if e.GRPCCodeField == codes.InvalidArgument && e.err != nil {
+		if fvs := e.fieldViolations(); len(fvs) > 0 {
+			details = append(details, &errdetails.BadRequest{
+				FieldViolations: fvs,
+			})
+		}
+	}
+
+	s, err := s.WithDetails(details...)
 	if err != nil {
 		// this error only occurs if the code is broken AF
 		panic(err)
 	}
 
 	return s
+}
+
+// fieldViolationError is an interface implemented by proto-gen-validate.
+type fieldViolationError interface {
+	Field() string
+	Reason() string
+	Cause() error
+}
+type multiError interface {
+	AllErrors() []error
+}
+
+func rootCauses(err fieldViolationError) []fieldViolationError {
+	if err == nil {
+		return []fieldViolationError{}
+	}
+
+	switch e := err.Cause().(type) {
+	case fieldViolationError:
+		return rootCauses(e)
+
+	case multiError:
+		var causes []fieldViolationError
+		for _, e := range e.AllErrors() {
+			if fvErr, ok := e.(fieldViolationError); ok {
+				causes = append(causes, rootCauses(fvErr)...)
+			}
+		}
+		return causes
+	}
+	return []fieldViolationError{err}
+}
+
+func (e DefaultError) fieldViolations() (fv []*errdetails.BadRequest_FieldViolation) {
+	err, ok := e.err.(multiError)
+	if !ok {
+		return
+	}
+	for _, e := range err.AllErrors() {
+		if fvErr, ok := e.(fieldViolationError); ok {
+			// We only want to show the root cause of the error.
+			for _, cause := range rootCauses(fvErr) {
+				fv = append(fv, &errdetails.BadRequest_FieldViolation{
+					Field:       cause.Field(),
+					Description: cause.Reason(),
+				})
+			}
+		}
+	}
+
+	return
 }
 
 func (e DefaultError) WithReason(reason string) *DefaultError {

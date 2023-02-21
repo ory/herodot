@@ -1,4 +1,4 @@
-// Copyright © 2022 Ory Corp
+// Copyright © 2023 Ory Corp
 // SPDX-License-Identifier: Apache-2.0
 
 package herodot
@@ -41,7 +41,7 @@ var ErrBadRequest = DefaultError{
 	StatusField:   http.StatusText(http.StatusBadRequest),
 	ErrorField:    "The request was malformed or contained invalid parameters",
 	CodeField:     http.StatusBadRequest,
-	GRPCCodeField: codes.FailedPrecondition,
+	GRPCCodeField: codes.InvalidArgument,
 }
 
 var ErrUnsupportedMediaType = DefaultError{
