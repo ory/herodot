@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 
 	"github.com/ory/herodot/httputil"
 )
@@ -75,7 +76,6 @@ var fileServerTests = []*struct {
 			"Etag":           {testEtag},
 			"Cache-Control":  {"public, max-age=3"},
 			"Content-Length": {testContentLength},
-			"Content-Type":   {"text/x-go; charset=utf-8"},
 		},
 	},
 	{
@@ -90,7 +90,6 @@ var fileServerTests = []*struct {
 			"Etag":           {testEtag},
 			"Cache-Control":  {"public, max-age=3"},
 			"Content-Length": {testContentLength},
-			"Content-Type":   {"text/x-go; charset=utf-8"},
 		},
 	},
 	{
@@ -105,7 +104,6 @@ var fileServerTests = []*struct {
 			"Etag":           {testEtag},
 			"Cache-Control":  {"public, max-age=31536000"},
 			"Content-Length": {testContentLength},
-			"Content-Type":   {"text/x-go; charset=utf-8"},
 		},
 	},
 	{
@@ -120,7 +118,6 @@ var fileServerTests = []*struct {
 			"Etag":           {testEtag},
 			"Cache-Control":  {"public, max-age=3"},
 			"Content-Length": {testContentLength},
-			"Content-Type":   {"text/x-go; charset=utf-8"},
 		},
 		empty: true,
 	},
@@ -152,7 +149,9 @@ func testStaticServer(t *testing.T, f func(*httputil.StaticServer) http.Handler)
 			t.Errorf("%s, status=%d, want %d", tt.name, w.Code, tt.status)
 		}
 
-		if !cmp.Equal(w.Header(), tt.header) {
+		// The content-type header depends on the MIME database installed on the
+		// host system and hence not portable.
+		if !cmp.Equal(w.Header(), tt.header, cmpopts.IgnoreMapEntries(func(key string, values []string) bool { return key == "Content-Type" })) {
 			t.Errorf("%s\n\theader=%v,\n\twant   %v", tt.name, w.Header(), tt.header)
 		}
 
