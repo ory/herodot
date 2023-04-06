@@ -34,6 +34,8 @@ type JSONWriter struct {
 	EnableDebug   bool
 }
 
+var _ Writer = (*JSONWriter)(nil)
+
 func NewJSONWriter(reporter ErrorReporter) *JSONWriter {
 	writer := &JSONWriter{
 		Reporter:      reporter,
@@ -97,13 +99,11 @@ func (h *JSONWriter) WriteCreated(w http.ResponseWriter, r *http.Request, locati
 // asserting statusCodeCarrier. If the error does not implement statusCodeCarrier, the status code
 // is set to 500.
 func (h *JSONWriter) WriteError(w http.ResponseWriter, r *http.Request, err error, opts ...Option) {
-	if c := statusCodeCarrier(nil); stderr.As(err, &c) {
+	if c := StatusCodeCarrier(nil); stderr.As(err, &c) {
 		h.WriteErrorCode(w, r, c.StatusCode(), err)
-		return
+	} else {
+		h.WriteErrorCode(w, r, http.StatusInternalServerError, err, opts...)
 	}
-
-	h.WriteErrorCode(w, r, http.StatusInternalServerError, err, opts...)
-	return
 }
 
 // WriteErrorCode writes an error to ResponseWriter and forces an error code.
@@ -116,7 +116,7 @@ func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code
 
 	if !o.noLog {
 		// All errors land here, so it's a really good idea to do the logging here as well!
-		h.Reporter.ReportError(r, code, toError(err), "An error occurred while handling a request")
+		h.Reporter.ReportError(r, code, coalesceError(err), "An error occurred while handling a request")
 	}
 
 	w.Header().Set("Content-Type", "application/json")
