@@ -5,6 +5,7 @@ package herodot
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	stderr "errors"
 	"net/http"
@@ -83,6 +84,10 @@ func (h *JSONWriter) WriteCode(w http.ResponseWriter, r *http.Request, code int,
 		code = http.StatusOK
 	}
 
+	if errors.Is(r.Context().Err(), context.Canceled) {
+		code = StatusClientClosedRequest
+	}
+
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(code)
 	_, _ = w.Write(bs.Bytes())
@@ -112,6 +117,10 @@ func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code
 
 	if code == 0 {
 		code = http.StatusInternalServerError
+	}
+
+	if errors.Is(r.Context().Err(), context.Canceled) {
+		code = StatusClientClosedRequest
 	}
 
 	if !o.noLog {

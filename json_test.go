@@ -5,6 +5,7 @@ package herodot
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	stderr "errors"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -259,4 +261,31 @@ func TestWriteCodeJSONUnescapedHTML(t *testing.T) {
 	require.Nil(t, err)
 	assert.Equal(t, fmt.Sprintf("\"%s\"\n", foo), string(result))
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
+func TestCanceledJSON(t *testing.T) {
+	h := NewJSONWriter(nil)
+	rec := httptest.NewRecorder()
+	done := make(chan struct{})
+	ts := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		defer close(done)
+		<-r.Context().Done()
+		h.WriteError(rec, r, errors.New("some unrelated error"))
+	}))
+	defer ts.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, "GET", ts.URL, nil)
+	require.NoError(t, err)
+
+	_, err = ts.Client().Do(req)
+	require.ErrorIs(t, err, context.DeadlineExceeded)
+
+	<-done
+	resp := rec.Result()
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	assert.Contains(t, string(body), "some unrelated error")
+	assert.Equal(t, 499, resp.StatusCode)
 }

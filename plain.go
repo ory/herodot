@@ -4,6 +4,7 @@
 package herodot
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -43,6 +44,10 @@ func (h *TextWriter) WriteCode(w http.ResponseWriter, r *http.Request, code int,
 		code = http.StatusOK
 	}
 
+	if errors.Is(r.Context().Err(), context.Canceled) {
+		code = StatusClientClosedRequest
+	}
+
 	w.Header().Set("Content-Type", h.contentType)
 	w.WriteHeader(code)
 	fmt.Fprintf(w, "%s", e)
@@ -73,6 +78,10 @@ func (h *TextWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code
 
 	if code == 0 {
 		code = http.StatusInternalServerError
+	}
+
+	if errors.Is(r.Context().Err(), context.Canceled) {
+		code = StatusClientClosedRequest
 	}
 
 	// All errors land here, so it's a really good idea to do the logging here as well!
