@@ -4,7 +4,6 @@
 package herodot
 
 import (
-	"encoding/json"
 	stderr "errors"
 	"fmt"
 	"io"
@@ -68,16 +67,6 @@ type DefaultError struct {
 
 	GRPCCodeField codes.Code `json:"-"`
 	err           error
-	enableDebug   bool
-}
-
-func (e *DefaultError) MarshalJSON() ([]byte, error) {
-	type alias DefaultError
-	ee := alias(*e)
-	if !ee.enableDebug {
-		ee.DebugField = ""
-	}
-	return json.Marshal(&ee)
 }
 
 // StackTrace returns the error's stack trace.
