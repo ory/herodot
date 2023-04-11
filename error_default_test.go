@@ -4,8 +4,9 @@
 package herodot
 
 import (
-	"encoding/json"
+	"io"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -112,24 +113,32 @@ func TestToDefaultError(t *testing.T) {
 	})
 }
 
-func TestMarshalJSON(t *testing.T) {
+func TestOmitDebug(t *testing.T) {
 	t.Run("case=without debug (default)", func(t *testing.T) {
 		e := &DefaultError{
 			ErrorField: "Some Error",
 			DebugField: "whatever",
 		}
-		j, err := json.Marshal(e)
+		h := NewJSONWriter(nil)
+		h.ErrorEnhancer = nil
+		rec := httptest.NewRecorder()
+		h.WriteError(rec, &http.Request{}, e)
+		j, err := io.ReadAll(rec.Result().Body)
 		require.NoError(t, err)
 		assert.JSONEq(t, `{"message":"Some Error"}`, string(j))
 	})
 
 	t.Run("case=with debug", func(t *testing.T) {
 		e := &DefaultError{
-			ErrorField:  "Some Error",
-			DebugField:  "whatever",
-			enableDebug: true,
+			ErrorField: "Some Error",
+			DebugField: "whatever",
 		}
-		j, err := json.Marshal(e)
+		h := NewJSONWriter(nil)
+		h.ErrorEnhancer = nil
+		h.EnableDebug = true
+		rec := httptest.NewRecorder()
+		h.WriteError(rec, &http.Request{}, e)
+		j, err := io.ReadAll(rec.Result().Body)
 		require.NoError(t, err)
 		assert.JSONEq(t, `{"message":"Some Error", "debug": "whatever"}`, string(j))
 	})
