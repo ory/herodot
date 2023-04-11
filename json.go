@@ -136,11 +136,17 @@ func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code
 	if h.ErrorEnhancer != nil {
 		payload = h.ErrorEnhancer(r, err)
 	}
-	if de, ok := payload.(*DefaultError); ok {
-		de.enableDebug = h.EnableDebug
+	if de, ok := payload.(*DefaultError); ok && !h.EnableDebug {
+		de2 := *de
+		de2.DebugField = ""
+		payload = &de2
 	}
-	if de, ok := payload.(*ErrorContainer); ok {
-		de.Error.enableDebug = h.EnableDebug
+	if ec, ok := payload.(*ErrorContainer); ok && !h.EnableDebug {
+		de2 := *ec.Error
+		de2.DebugField = ""
+		ec2 := *ec
+		ec2.Error = &de2
+		payload = ec2
 	}
 
 	if err := json.NewEncoder(w).Encode(payload); err != nil {
