@@ -17,6 +17,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// swagger:ignore
 type DefaultError struct {
 	// The error ID
 	//
