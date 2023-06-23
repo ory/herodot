@@ -61,6 +61,36 @@ func defaultJSONErrorEnhancer(r *http.Request, err error) interface{} {
 	return &ErrorContainer{Error: ToDefaultError(err, r.Header.Get("X-Request-ID"))}
 }
 
+func Scrub5xxJSONErrorEnhancer(r *http.Request, err error) interface{} {
+	payload := defaultJSONErrorEnhancer(r, err)
+
+	if de, ok := payload.(DefaultError); ok {
+		if de.StatusCode() >= 500 {
+			return scrub5xxError(&de)
+		}
+		return payload
+	}
+	if ec, ok := payload.(*ErrorContainer); ok {
+		if ec.Error.CodeField >= 500 {
+			return scrub5xxError(ec.Error)
+		}
+		return payload
+	}
+
+	// We have some other error, which we always want to scrub.
+	return &ErrorContainer{Error: ToDefaultError(&ErrInternalServerError, r.Header.Get("X-Request-ID"))}
+}
+
+func scrub5xxError(err *DefaultError) *ErrorContainer {
+	return &ErrorContainer{Error: &DefaultError{
+		IDField:       err.IDField,
+		CodeField:     err.CodeField,
+		StatusField:   err.StatusField,
+		RIDField:      err.RIDField,
+		GRPCCodeField: err.GRPCCodeField,
+	}}
+}
+
 // Write a response object to the ResponseWriter with status code 200.
 func (h *JSONWriter) Write(w http.ResponseWriter, r *http.Request, e interface{}, opts ...EncoderOptions) {
 	h.WriteCode(w, r, http.StatusOK, e, opts...)
