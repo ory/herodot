@@ -48,13 +48,54 @@ func TestWriteError(t *testing.T) {
 		err    error
 		expect *DefaultError
 	}{
-		{err: exampleError, expect: exampleError},
-		{err: errors.WithStack(exampleError), expect: exampleError},
-		{err: onlyStatusCodeError, expect: &DefaultError{StatusField: http.StatusText(http.StatusNotFound), CodeField: http.StatusNotFound, ErrorField: "foo"}},
-		{err: errors.WithStack(onlyStatusCodeError), expect: &DefaultError{StatusField: http.StatusText(http.StatusNotFound), CodeField: http.StatusNotFound, ErrorField: "foo"}},
-		{err: errors.New("foo"), expect: &DefaultError{StatusField: http.StatusText(http.StatusInternalServerError), CodeField: http.StatusInternalServerError, ErrorField: "foo"}},
-		{err: errors.WithStack(errors.New("foo1")), expect: &DefaultError{StatusField: http.StatusText(http.StatusInternalServerError), CodeField: http.StatusInternalServerError, ErrorField: "foo1"}},
-		{err: stderr.New("foo1"), expect: &DefaultError{StatusField: http.StatusText(http.StatusInternalServerError), CodeField: http.StatusInternalServerError, ErrorField: "foo1"}},
+		{
+			err:    exampleError,
+			expect: exampleError,
+		},
+		{
+			err:    errors.WithStack(exampleError),
+			expect: exampleError,
+		},
+		{
+			err: onlyStatusCodeError,
+			expect: &DefaultError{
+				StatusField: http.StatusText(http.StatusNotFound),
+				CodeField:   http.StatusNotFound,
+				ErrorField:  "foo",
+			},
+		},
+		{
+			err: errors.WithStack(onlyStatusCodeError),
+			expect: &DefaultError{
+				StatusField: http.StatusText(http.StatusNotFound),
+				CodeField:   http.StatusNotFound,
+				ErrorField:  "foo",
+			},
+		},
+		{
+			err: errors.New("foo"),
+			expect: &DefaultError{
+				StatusField: http.StatusText(http.StatusInternalServerError),
+				CodeField:   http.StatusInternalServerError,
+				ErrorField:  "foo",
+			},
+		},
+		{
+			err: errors.WithStack(errors.New("foo1")),
+			expect: &DefaultError{
+				StatusField: http.StatusText(http.StatusInternalServerError),
+				CodeField:   http.StatusInternalServerError,
+				ErrorField:  "foo1",
+			},
+		},
+		{
+			err: stderr.New("foo1"),
+			expect: &DefaultError{
+				StatusField: http.StatusText(http.StatusInternalServerError),
+				CodeField:   http.StatusInternalServerError,
+				ErrorField:  "foo1",
+			},
+		},
 		{
 			err: ErrInternalServerError.WithTrace(tracedErr).WithReasonf("Unable to prepare JSON Schema for HTTP Post Body Form parsing: %s", tracedErr).WithDebugf("%+v", tracedErr),
 			expect: &DefaultError{
@@ -90,6 +131,98 @@ func TestWriteError(t *testing.T) {
 			assert.Equal(t, tc.expect.Error(), j.Error.Error(), "%s", body)
 		})
 	}
+
+	t.Run("suite=5xxScrubber", func(t *testing.T) {
+
+		for k, tc := range []struct {
+			err    error
+			expect *DefaultError
+		}{
+			{
+				err:    exampleError,
+				expect: exampleError,
+			},
+			{
+				err:    errors.WithStack(exampleError),
+				expect: exampleError,
+			},
+			{
+				err: onlyStatusCodeError,
+				expect: &DefaultError{
+					StatusField: http.StatusText(http.StatusNotFound),
+					CodeField:   http.StatusNotFound,
+					ErrorField:  "foo",
+				},
+			},
+			{
+				err: errors.WithStack(onlyStatusCodeError),
+				expect: &DefaultError{
+					StatusField: http.StatusText(http.StatusNotFound),
+					CodeField:   http.StatusNotFound,
+					ErrorField:  "foo",
+				},
+			},
+			{
+				err: errors.New("foo"),
+				expect: &DefaultError{
+					StatusField: http.StatusText(http.StatusInternalServerError),
+					CodeField:   http.StatusInternalServerError,
+					ErrorField:  "", // scrubbed
+				},
+			},
+			{
+				err: errors.WithStack(errors.New("foo1")),
+				expect: &DefaultError{
+					StatusField: http.StatusText(http.StatusInternalServerError),
+					CodeField:   http.StatusInternalServerError,
+					ErrorField:  "", // scrubbed
+				},
+			},
+			{
+				err: stderr.New("foo1"),
+				expect: &DefaultError{
+					StatusField: http.StatusText(http.StatusInternalServerError),
+					CodeField:   http.StatusInternalServerError,
+					ErrorField:  "", // scrubbed
+				},
+			},
+			{
+				err: ErrInternalServerError.WithTrace(tracedErr).WithReasonf("Unable to prepare JSON Schema for HTTP Post Body Form parsing: %s", tracedErr).WithDebugf("%+v", tracedErr),
+				expect: &DefaultError{
+					ReasonField: "", // scrubbed
+					StatusField: http.StatusText(http.StatusInternalServerError),
+					CodeField:   http.StatusInternalServerError,
+					ErrorField:  "", // scrubbed
+					DebugField:  "", // scrubbed
+				},
+			},
+		} {
+			t.Run(fmt.Sprintf("case=%d", k), func(t *testing.T) {
+				var j ErrorContainer
+
+				h := NewJSONWriter(nil)
+				h.ErrorEnhancer = Scrub5xxJSONErrorEnhancer
+				ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					r.Header.Set("X-Request-ID", "foo")
+					h.WriteError(w, r, tc.err)
+				}))
+				defer ts.Close()
+
+				resp, err := http.Get(ts.URL + "/do")
+				require.Nil(t, err)
+				defer resp.Body.Close()
+				body, _ := io.ReadAll(resp.Body)
+
+				require.NoError(t, json.NewDecoder(bytes.NewBuffer(body)).Decode(&j), "%s", body)
+				assert.Equal(t, tc.expect.StatusCode(), resp.StatusCode, "%s", body)
+				assert.Equal(t, "foo", j.Error.RequestID(), "%s", body)
+				assert.Equal(t, tc.expect.Status(), j.Error.Status(), "%s", body)
+				assert.Equal(t, tc.expect.StatusCode(), j.Error.StatusCode(), "%s", body)
+				assert.Equal(t, tc.expect.Reason(), j.Error.Reason(), "%s", body)
+				assert.Equal(t, tc.expect.Error(), j.Error.Error(), "%s", body)
+			})
+		}
+	})
 
 	t.Run("case=debug flag", func(t *testing.T) {
 		for _, tc := range []struct {
