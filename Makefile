@@ -18,4 +18,6 @@ node_modules: package-lock.json
 	touch node_modules
 
 tools:
-	GOBIN=$(shell pwd)/.bin/ go install github.com/ory/go-acc golang.org/x/tools/cmd/goimports github.com/jandelgado/gcov2lcov
+	GOBIN=$(shell pwd)/.bin/ go install github.com/ory/go-acc@v0.2.9-0.20230103102148-6b1c9a70dbbe
+	GOBIN=$(shell pwd)/.bin/ go install golang.org/x/tools/cmd/goimports@v0.7.0
+	GOBIN=$(shell pwd)/.bin/ go install github.com/jandelgado/gcov2lcov@v1.0.5
