@@ -12,8 +12,8 @@ require (
 	github.com/stretchr/testify v1.8.1
 	golang.org/x/sync v0.1.0
 	golang.org/x/tools v0.7.0
-	google.golang.org/genproto v0.0.0-20230403163135-c38d8f061ccd
-	google.golang.org/grpc v1.54.0
+	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1
+	google.golang.org/grpc v1.56.3
 	google.golang.org/grpc/examples v0.0.0-20210304020650-930c79186c99
 )
 
