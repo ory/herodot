@@ -1,3 +1,4 @@
+
 "github.com/jandelgado/gcov2lcov","MIT"
 "github.com/fsnotify/fsnotify","BSD-3-Clause"
 "github.com/hashicorp/hcl","MPL-2.0"
@@ -34,3 +35,4 @@
 "google.golang.org/genproto/googleapis/rpc/status","Apache-2.0"
 "google.golang.org/grpc","Apache-2.0"
 "google.golang.org/protobuf","BSD-3-Clause"
+
