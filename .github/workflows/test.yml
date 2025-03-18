@@ -18,8 +18,7 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: "1.24"
-      - run:
-          go test -coverprofile=coverage.out -timeout=1m ./...
+      - run: go test -coverprofile=coverage.out -timeout=1m ./...
       - run: go tool gcov2lcov -infile=coverage.out -outfile=coverage.lcov
       - name: Coveralls
         uses: coverallsapp/github-action@master

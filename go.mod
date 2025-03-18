@@ -3,7 +3,6 @@ module github.com/ory/herodot
 go 1.24
 
 require (
-	github.com/phayes/freeport v0.0.0-20220201140144-74d24b5ae9f5
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/sync v0.12.0
