@@ -5,14 +5,12 @@ package herodot
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"testing"
 
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 
-	"github.com/phayes/freeport"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
@@ -34,14 +32,10 @@ func (g *testingGreeter) SayHello(context.Context, *helloworld.HelloRequest) (*h
 }
 
 func TestGRPCInterceptors(t *testing.T) {
-	port, err := freeport.GetFreePort()
-	require.NoError(t, err)
-	addr := fmt.Sprintf("127.0.0.1:%d", port)
-
 	server := &testingGreeter{}
 	s := grpc.NewServer(grpc.UnaryInterceptor(UnaryErrorUnwrapInterceptor))
 	helloworld.RegisterGreeterServer(s, server)
-	l, err := net.Listen("tcp", addr)
+	l, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 
 	serveErr := &errgroup.Group{}
@@ -49,7 +43,7 @@ func TestGRPCInterceptors(t *testing.T) {
 		return s.Serve(l)
 	})
 
-	conn, err := grpc.Dial(addr, grpc.WithInsecure())
+	conn, err := grpc.Dial(l.Addr().String(), grpc.WithInsecure())
 	require.NoError(t, err)
 	c := helloworld.NewGreeterClient(conn)
 

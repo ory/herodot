@@ -9,7 +9,6 @@ package httputil_test
 import (
 	"crypto/sha1"
 	"encoding/hex"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -18,8 +17,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ory/herodot/httputil"
 )
@@ -39,7 +38,7 @@ func mustParseURL(urlStr string) *url.URL {
 }
 
 func computeTestHash() string {
-	p, err := ioutil.ReadFile("static_test.go")
+	p, err := os.ReadFile("static_test.go")
 	if err != nil {
 		panic(err)
 	}
@@ -140,25 +139,25 @@ var fileServerTests = []*struct {
 
 func testStaticServer(t *testing.T, f func(*httputil.StaticServer) http.Handler) {
 	for _, tt := range fileServerTests {
-		w := httptest.NewRecorder()
+		t.Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
 
-		h := f(tt.ss)
-		h.ServeHTTP(w, tt.r)
+			h := f(tt.ss)
+			h.ServeHTTP(w, tt.r)
 
-		if w.Code != tt.status {
-			t.Errorf("%s, status=%d, want %d", tt.name, w.Code, tt.status)
-		}
+			require.Equal(t, tt.status, w.Code)
+			if w.Code != tt.status {
+				t.Errorf("%s, status=%d, want %d", tt.name, w.Code, tt.status)
+			}
 
-		// The content-type header depends on the MIME database installed on the
-		// host system and hence not portable.
-		if !cmp.Equal(w.Header(), tt.header, cmpopts.IgnoreMapEntries(func(key string, values []string) bool { return key == "Content-Type" })) {
-			t.Errorf("%s\n\theader=%v,\n\twant   %v", tt.name, w.Header(), tt.header)
-		}
+			// The content-type header depends on the MIME database installed on the
+			// host system and hence not portable.
+			actualHeader := w.Header()
+			actualHeader.Del("Content-Type")
+			assert.Equal(t, actualHeader, tt.header)
 
-		empty := w.Body.Len() == 0
-		if empty != tt.empty {
-			t.Errorf("%s empty=%v, want %v", tt.name, empty, tt.empty)
-		}
+			assert.Equal(t, tt.empty, w.Body.Len() == 0)
+		})
 	}
 }
 
