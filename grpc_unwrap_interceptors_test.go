@@ -9,32 +9,32 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
-	"google.golang.org/grpc/codes"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/examples/helloworld/helloworld"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/ory/herodot/internal"
 )
 
 type testingGreeter struct {
-	helloworld.UnimplementedGreeterServer
+	internal.UnimplementedGreeterServer
 	shouldErr bool
 }
 
-func (g *testingGreeter) SayHello(context.Context, *helloworld.HelloRequest) (*helloworld.HelloReply, error) {
+func (g *testingGreeter) SayHello(context.Context, *internal.HelloRequest) (*internal.HelloReply, error) {
 	if g.shouldErr {
 		return nil, errors.WithStack(ErrInternalServerError)
 	}
-	return &helloworld.HelloReply{Message: "see, no error"}, nil
+	return &internal.HelloReply{Message: "see, no error"}, nil
 }
 
 func TestGRPCInterceptors(t *testing.T) {
 	server := &testingGreeter{}
 	s := grpc.NewServer(grpc.UnaryInterceptor(UnaryErrorUnwrapInterceptor))
-	helloworld.RegisterGreeterServer(s, server)
+	internal.RegisterGreeterServer(s, server)
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 
@@ -45,7 +45,7 @@ func TestGRPCInterceptors(t *testing.T) {
 
 	conn, err := grpc.Dial(l.Addr().String(), grpc.WithInsecure())
 	require.NoError(t, err)
-	c := helloworld.NewGreeterClient(conn)
+	c := internal.NewGreeterClient(conn)
 
 	for _, tc := range []struct {
 		name      string
@@ -63,7 +63,7 @@ func TestGRPCInterceptors(t *testing.T) {
 		t.Run("case="+tc.name, func(t *testing.T) {
 			server.shouldErr = tc.shouldErr
 
-			resp, err := c.SayHello(context.Background(), &helloworld.HelloRequest{})
+			resp, err := c.SayHello(context.Background(), &internal.HelloRequest{})
 			if tc.shouldErr {
 				assert.Equal(t, codes.Internal, status.Code(err))
 			} else {
