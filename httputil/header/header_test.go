@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
 )
 
 var getHeaderListTests = []struct {
@@ -32,9 +32,7 @@ var getHeaderListTests = []struct {
 func TestGetHeaderList(t *testing.T) {
 	for _, tt := range getHeaderListTests {
 		header := http.Header{"Foo": {tt.s}}
-		if l := ParseList(header, "foo"); !cmp.Equal(tt.l, l) {
-			t.Errorf("ParseList for %q = %q, want %q", tt.s, l, tt.l)
-		}
+		assert.Equal(t, tt.l, ParseList(header, "foo"))
 	}
 }
 
@@ -66,12 +64,8 @@ func TestParseValueAndParams(t *testing.T) {
 	for _, tt := range parseValueAndParamsTests {
 		header := http.Header{"Content-Type": {tt.s}}
 		value, params := ParseValueAndParams(header, "Content-Type")
-		if value != tt.value {
-			t.Errorf("%q, value=%q, want %q", tt.s, value, tt.value)
-		}
-		if !cmp.Equal(params, tt.params) {
-			t.Errorf("%q, param=%#v, want %#v", tt.s, params, tt.params)
-		}
+		assert.Equal(t, tt.value, value)
+		assert.Equal(t, tt.params, params)
 	}
 }
 
@@ -132,8 +126,6 @@ func TestParseAccept(t *testing.T) {
 	for _, tt := range parseAcceptTests {
 		header := http.Header{"Accept": {tt.s}}
 		actual := ParseAccept(header, "Accept")
-		if !cmp.Equal(actual, tt.expected) {
-			t.Errorf("ParseAccept(h, %q)=%v, want %v", tt.s, actual, tt.expected)
-		}
+		assert.Equal(t, tt.expected, actual)
 	}
 }

@@ -9,12 +9,11 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/pkg/errors"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
-	"github.com/golang/protobuf/proto"
-	"github.com/pkg/errors"
+	"google.golang.org/protobuf/protoadapt"
 )
 
 // swagger:ignore
@@ -171,7 +170,7 @@ func (e DefaultError) GRPCStatus() *status.Status {
 		}
 	}
 
-	details := []proto.Message{}
+	details := []protoadapt.MessageV1{}
 
 	if e.DebugField != "" || st != nil {
 		details = append(details, &errdetails.DebugInfo{
