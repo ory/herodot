@@ -323,10 +323,10 @@ func (e DefaultError) Format(s fmt.State, verb rune) {
 	}
 }
 
-func ToDefaultError(err error, requestID string) *DefaultError {
+func ToDefaultError(err error, code int, requestID string) *DefaultError {
 	de := &DefaultError{
 		RIDField:     requestID,
-		CodeField:    http.StatusInternalServerError,
+		CodeField:    code,
 		DetailsField: map[string]interface{}{},
 		ErrorField:   err.Error(),
 	}
