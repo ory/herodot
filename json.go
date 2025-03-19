@@ -31,7 +31,7 @@ func UnescapedHTML(enc *json.Encoder) {
 // JSONWriter writes JSON responses (obviously).
 type JSONWriter struct {
 	Reporter      ErrorReporter
-	ErrorEnhancer func(r *http.Request, err error) interface{}
+	ErrorEnhancer func(r *http.Request, code int, err error) interface{}
 	EnableDebug   bool
 }
 
@@ -54,15 +54,15 @@ type ErrorEnhancer interface {
 	EnhanceJSONError() interface{}
 }
 
-func defaultJSONErrorEnhancer(r *http.Request, err error) interface{} {
+func defaultJSONErrorEnhancer(r *http.Request, code int, err error) interface{} {
 	if e, ok := err.(ErrorEnhancer); ok {
 		return e.EnhanceJSONError()
 	}
-	return &ErrorContainer{Error: ToDefaultError(err, r.Header.Get("X-Request-ID"))}
+	return &ErrorContainer{Error: ToDefaultError(err, code, r.Header.Get("X-Request-ID"))}
 }
 
-func Scrub5xxJSONErrorEnhancer(r *http.Request, err error) interface{} {
-	payload := defaultJSONErrorEnhancer(r, err)
+func Scrub5xxJSONErrorEnhancer(r *http.Request, code int, err error) interface{} {
+	payload := defaultJSONErrorEnhancer(r, code, err)
 
 	if de, ok := payload.(DefaultError); ok {
 		if de.StatusCode() >= 500 {
@@ -78,7 +78,7 @@ func Scrub5xxJSONErrorEnhancer(r *http.Request, err error) interface{} {
 	}
 
 	// We have some other error, which we always want to scrub.
-	return &ErrorContainer{Error: ToDefaultError(&ErrInternalServerError, r.Header.Get("X-Request-ID"))}
+	return &ErrorContainer{Error: ToDefaultError(&ErrInternalServerError, code, r.Header.Get("X-Request-ID"))}
 }
 
 func scrub5xxError(err *DefaultError) *ErrorContainer {
@@ -164,7 +164,7 @@ func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code
 	// Enhancing must happen after logging or context will be lost.
 	var payload interface{} = err
 	if h.ErrorEnhancer != nil {
-		payload = h.ErrorEnhancer(r, err)
+		payload = h.ErrorEnhancer(r,code, err)
 	}
 	if de, ok := payload.(*DefaultError); ok && !h.EnableDebug {
 		de2 := *de
