@@ -57,3 +57,11 @@ var ErrConflict = DefaultError{
 	CodeField:     http.StatusConflict,
 	GRPCCodeField: codes.FailedPrecondition,
 }
+
+var ErrMisconfiguration = DefaultError{
+	IDField:     "invalid_configuration",
+	StatusField: http.StatusText(http.StatusInternalServerError),
+	ErrorField:  "Invalid configuration",
+	ReasonField: "One or more configuration values are invalid. Please report this to the system administrator.",
+	CodeField:   http.StatusInternalServerError,
+}
