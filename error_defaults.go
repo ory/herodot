@@ -59,9 +59,18 @@ var ErrConflict = DefaultError{
 }
 
 var ErrMisconfiguration = DefaultError{
-	IDField:     "invalid_configuration",
-	StatusField: http.StatusText(http.StatusInternalServerError),
-	ErrorField:  "Invalid configuration",
-	ReasonField: "One or more configuration values are invalid. Please report this to the system administrator.",
-	CodeField:   http.StatusInternalServerError,
+	IDField:       "invalid_configuration",
+	StatusField:   http.StatusText(http.StatusInternalServerError),
+	ErrorField:    "Invalid configuration",
+	ReasonField:   "One or more configuration values are invalid. Please report this to the system administrator.",
+	CodeField:     http.StatusInternalServerError,
+	GRPCCodeField: codes.Internal,
+}
+
+var ErrUpstreamError = DefaultError{
+	IDField:     "upstream_error",
+	StatusField: http.StatusText(http.StatusBadGateway),
+	ErrorField:  "Upstream error",
+	ReasonField: "An upstream server encountered an error or returned a malformed or unexpected response.",
+	CodeField:   http.StatusBadGateway,
 }
