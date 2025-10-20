@@ -15,3 +15,4 @@ _book/
 dist/
 coverage.*
 .bin
+.claude/
