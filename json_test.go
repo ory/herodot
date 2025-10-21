@@ -435,7 +435,7 @@ func TestOryErrorIDHeader(t *testing.T) {
 			expectedHeader: "invalid_configuration",
 		},
 		{
-			name:           "error without ID does not set header",
+			name:           "sets empty header without ID",
 			err:            &ErrNotFound,
 			expectedHeader: "",
 		},
