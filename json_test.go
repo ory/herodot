@@ -430,7 +430,7 @@ func TestOryErrorIDHeader(t *testing.T) {
 		expectedHeader string
 	}{
 		{
-			name:           "error with ID sets header",
+			name:           "sets ID in header",
 			err:            &ErrMisconfiguration,
 			expectedHeader: "invalid_configuration",
 		},
