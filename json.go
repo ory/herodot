@@ -17,6 +17,10 @@ type ErrorContainer struct {
 	Error *DefaultError `json:"error"`
 }
 
+func (e *ErrorContainer) ID() string {
+	return e.Error.ID()
+}
+
 type ErrorReporter interface {
 	ReportError(r *http.Request, code int, err error, args ...interface{})
 }
@@ -159,12 +163,14 @@ func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
 
 	// Enhancing must happen after logging or context will be lost.
 	var payload interface{} = err
 	if h.ErrorEnhancer != nil {
 		payload = h.ErrorEnhancer(r, err)
+	}
+	if id, ok := payload.(interface{ ID() string }); ok {
+		w.Header().Set("Ory-Error-Id", id.ID())
 	}
 	if de, ok := payload.(*DefaultError); ok && !h.EnableDebug {
 		de2 := *de
@@ -178,6 +184,8 @@ func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code
 		ec2.Error = &de2
 		payload = ec2
 	}
+
+	w.WriteHeader(code)
 
 	if err := json.NewEncoder(w).Encode(payload); err != nil {
 		// There was an error, but there's actually not a lot we can do except log that this happened.

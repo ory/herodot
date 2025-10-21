@@ -87,6 +87,9 @@ func (h *TextWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code
 	// All errors land here, so it's a really good idea to do the logging here as well!
 	h.Reporter.ReportError(r, code, err, "An error occurred while handling a request")
 
+	if id, ok := err.(interface{ ID() string }); ok {
+		w.Header().Set("Ory-Error-Id", id.ID())
+	}
 	w.Header().Set("Content-Type", h.contentType)
 	w.WriteHeader(code)
 	fmt.Fprintf(w, "%s", err)

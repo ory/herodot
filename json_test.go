@@ -422,3 +422,51 @@ func TestCanceledJSON(t *testing.T) {
 	assert.Contains(t, string(body), "some unrelated error")
 	assert.Equal(t, 499, resp.StatusCode)
 }
+
+func TestOryErrorIDHeader(t *testing.T) {
+	for k, tc := range []struct {
+		name           string
+		err            error
+		expectedHeader string
+	}{
+		{
+			name:           "sets ID in header",
+			err:            &ErrMisconfiguration,
+			expectedHeader: "invalid_configuration",
+		},
+		{
+			name:           "sets empty header without ID",
+			err:            &ErrNotFound,
+			expectedHeader: "",
+		},
+		{
+			name: "custom error with ID sets header",
+			err: &DefaultError{
+				IDField:     "custom_error_id",
+				CodeField:   http.StatusBadRequest,
+				StatusField: http.StatusText(http.StatusBadRequest),
+				ErrorField:  "custom error",
+			},
+			expectedHeader: "custom_error_id",
+		},
+		{
+			name:           "upstream error sets header",
+			err:            &ErrUpstreamError,
+			expectedHeader: "upstream_error",
+		},
+	} {
+		t.Run(fmt.Sprintf("case=%d/%s", k, tc.name), func(t *testing.T) {
+			h := NewJSONWriter(nil)
+			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				h.WriteError(w, r, tc.err)
+			}))
+			t.Cleanup(ts.Close)
+
+			resp, err := http.Get(ts.URL + "/do")
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, tc.expectedHeader, resp.Header.Get("Ory-Error-Id"))
+		})
+	}
+}
