@@ -67,6 +67,15 @@ func TestToDefaultError(t *testing.T) {
 		assert.EqualValues(t, map[string]interface{}{"foo-debug": "bar"}, ToDefaultError(e, "").Details())
 	})
 
+	t.Run("case=details copies map", func(t *testing.T) {
+		e1 := &DefaultError{
+			DetailsField: map[string]interface{}{"foo": "bar"},
+		}
+		e2 := e1.WithDetail("foo", "baz")
+		assert.EqualValues(t, map[string]interface{}{"foo": "bar"}, ToDefaultError(e1, "").Details())
+		assert.EqualValues(t, map[string]interface{}{"foo": "baz"}, ToDefaultError(e2, "").Details())
+	})
+
 	t.Run("case=rid", func(t *testing.T) {
 		e := &DefaultError{
 			RIDField: "foo-rid",
