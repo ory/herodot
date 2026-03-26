@@ -36,6 +36,10 @@ func (*noCopy) Unlock() {}
 // A shallow copy would inadvertently share these underlying fields,
 // leading to incorrect behavior and data races in a concurrent context.
 // Consequently, all methods take the type by pointer and not by value.
+//
+// From https://go.dev/wiki/CodeReviewComments#receiver-type:
+// > If the receiver is a struct, array or slice and any of its elements is a pointer to something that might be mutating,
+// > prefer a pointer receiver, as it will make the intention clearer to the reader.
 // swagger:ignore
 type DefaultError struct {
 	_ noCopy
