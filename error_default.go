@@ -337,6 +337,8 @@ func (e *DefaultError) WithDebug(debug string) *DefaultError {
 func (e *DefaultError) WithDetail(key string, detail interface{}) *DefaultError {
 	if e.DetailsField == nil {
 		e.DetailsField = map[string]interface{}{}
+	} else {
+		e.DetailsField = maps.Clone(e.DetailsField)
 	}
 	e.DetailsField[key] = detail
 	return e
@@ -346,6 +348,8 @@ func (e *DefaultError) WithDetail(key string, detail interface{}) *DefaultError 
 func (e *DefaultError) WithDetailf(key string, message string, args ...interface{}) *DefaultError {
 	if e.DetailsField == nil {
 		e.DetailsField = map[string]interface{}{}
+	} else {
+		e.DetailsField = maps.Clone(e.DetailsField)
 	}
 	e.DetailsField[key] = fmt.Sprintf(message, args...)
 	return e
