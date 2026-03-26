@@ -18,6 +18,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func makeSomeError() *DefaultError {
+	return &DefaultError{
+		ErrorField:    "message",
+		GRPCCodeField: codes.InvalidArgument,
+		DebugField:    "debug",
+		ReasonField:   "reason",
+		RIDField:      "request_id",
+	}
+}
+
 func TestToDefaultError(t *testing.T) {
 	t.Run("case=stack", func(t *testing.T) {
 		e := errors.New("hi")
@@ -101,13 +111,7 @@ func TestToDefaultError(t *testing.T) {
 			&errdetails.RequestInfo{RequestId: "request_id"},
 		)
 
-		status := DefaultError{
-			ErrorField:    "message",
-			GRPCCodeField: codes.InvalidArgument,
-			DebugField:    "debug",
-			ReasonField:   "reason",
-			RIDField:      "request_id",
-		}.GRPCStatus()
+		status := makeSomeError().GRPCStatus()
 
 		assert.Equal(t, expected, status)
 	})

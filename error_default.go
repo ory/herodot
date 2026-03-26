@@ -16,6 +16,11 @@ import (
 	"google.golang.org/protobuf/protoadapt"
 )
 
+// DefaultError is not safe to shallow copy because it contains
+// fields which are not value types, e.g. maps.
+// A shallow copy would inadvertently share these underlying fields,
+// leading to incorrect behavior and data races in a concurrent context.
+// Consequently, all methods take the type by pointer and not by value.
 // swagger:ignore
 type DefaultError struct {
 	// The error ID
@@ -82,7 +87,7 @@ func (e *DefaultError) StackTrace() (trace errors.StackTrace) {
 	return
 }
 
-func (e DefaultError) Unwrap() error {
+func (e *DefaultError) Unwrap() error {
 	return e.err
 }
 
@@ -90,14 +95,14 @@ func (e *DefaultError) Wrap(err error) {
 	e.err = err
 }
 
-func (e DefaultError) WithWrap(err error) *DefaultError {
+func (e *DefaultError) WithWrap(err error) *DefaultError {
 	e.err = err
-	return &e
+	return e
 }
 
-func (e DefaultError) WithID(id string) *DefaultError {
+func (e *DefaultError) WithID(id string) *DefaultError {
 	e.IDField = id
-	return &e
+	return e
 }
 
 func (e *DefaultError) WithTrace(err error) *DefaultError {
@@ -109,13 +114,8 @@ func (e *DefaultError) WithTrace(err error) *DefaultError {
 	return e
 }
 
-func (e DefaultError) Is(err error) bool {
+func (e *DefaultError) Is(err error) bool {
 	switch te := err.(type) {
-	case DefaultError:
-		return e.ErrorField == te.ErrorField &&
-			e.StatusField == te.StatusField &&
-			e.IDField == te.IDField &&
-			e.CodeField == te.CodeField
 	case *DefaultError:
 		return e.ErrorField == te.ErrorField &&
 			e.StatusField == te.StatusField &&
@@ -126,39 +126,39 @@ func (e DefaultError) Is(err error) bool {
 	}
 }
 
-func (e DefaultError) Status() string {
+func (e *DefaultError) Status() string {
 	return e.StatusField
 }
 
-func (e DefaultError) ID() string {
+func (e *DefaultError) ID() string {
 	return e.IDField
 }
 
-func (e DefaultError) Error() string {
+func (e *DefaultError) Error() string {
 	return e.ErrorField
 }
 
-func (e DefaultError) RequestID() string {
+func (e *DefaultError) RequestID() string {
 	return e.RIDField
 }
 
-func (e DefaultError) Reason() string {
+func (e *DefaultError) Reason() string {
 	return e.ReasonField
 }
 
-func (e DefaultError) Debug() string {
+func (e *DefaultError) Debug() string {
 	return e.DebugField
 }
 
-func (e DefaultError) Details() map[string]interface{} {
+func (e *DefaultError) Details() map[string]interface{} {
 	return e.DetailsField
 }
 
-func (e DefaultError) StatusCode() int {
+func (e *DefaultError) StatusCode() int {
 	return e.CodeField
 }
 
-func (e DefaultError) GRPCStatus() *status.Status {
+func (e *DefaultError) GRPCStatus() *status.Status {
 	s := status.New(e.GRPCCodeField, e.Error())
 
 	st := e.StackTrace()
@@ -259,50 +259,50 @@ func (e DefaultError) fieldViolations() (fv []*errdetails.BadRequest_FieldViolat
 	return
 }
 
-func (e DefaultError) WithReason(reason string) *DefaultError {
+func (e *DefaultError) WithReason(reason string) *DefaultError {
 	e.ReasonField = reason
-	return &e
+	return e
 }
 
-func (e DefaultError) WithReasonf(reason string, args ...interface{}) *DefaultError {
+func (e *DefaultError) WithReasonf(reason string, args ...interface{}) *DefaultError {
 	return e.WithReason(fmt.Sprintf(reason, args...))
 }
 
-func (e DefaultError) WithError(message string) *DefaultError {
+func (e *DefaultError) WithError(message string) *DefaultError {
 	e.ErrorField = message
-	return &e
+	return e
 }
 
-func (e DefaultError) WithErrorf(message string, args ...interface{}) *DefaultError {
+func (e *DefaultError) WithErrorf(message string, args ...interface{}) *DefaultError {
 	return e.WithError(fmt.Sprintf(message, args...))
 }
 
-func (e DefaultError) WithDebugf(debug string, args ...interface{}) *DefaultError {
+func (e *DefaultError) WithDebugf(debug string, args ...interface{}) *DefaultError {
 	return e.WithDebug(fmt.Sprintf(debug, args...))
 }
 
-func (e DefaultError) WithDebug(debug string) *DefaultError {
+func (e *DefaultError) WithDebug(debug string) *DefaultError {
 	e.DebugField = debug
-	return &e
+	return e
 }
 
-func (e DefaultError) WithDetail(key string, detail interface{}) *DefaultError {
+func (e *DefaultError) WithDetail(key string, detail interface{}) *DefaultError {
 	if e.DetailsField == nil {
 		e.DetailsField = map[string]interface{}{}
 	}
 	e.DetailsField[key] = detail
-	return &e
+	return e
 }
 
-func (e DefaultError) WithDetailf(key string, message string, args ...interface{}) *DefaultError {
+func (e *DefaultError) WithDetailf(key string, message string, args ...interface{}) *DefaultError {
 	if e.DetailsField == nil {
 		e.DetailsField = map[string]interface{}{}
 	}
 	e.DetailsField[key] = fmt.Sprintf(message, args...)
-	return &e
+	return e
 }
 
-func (e DefaultError) Format(s fmt.State, verb rune) {
+func (e *DefaultError) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
