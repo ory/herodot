@@ -18,18 +18,18 @@ import (
 )
 
 // (Copied from stdlib.)
-// NoCopy may be added to structs which must not be copied
+// noCopy may be added to structs which must not be copied
 // after the first use.
 //
 // See https://golang.org/issues/8005#issuecomment-190753527
 // for details.
 //
 // Note that it must not be embedded, due to the Lock and Unlock methods.
-type NoCopy struct{}
+type noCopy struct{}
 
 // Lock is a no-op used by -copylocks checker from `go vet`.
-func (*NoCopy) Lock()   {}
-func (*NoCopy) Unlock() {}
+func (*noCopy) Lock()   {}
+func (*noCopy) Unlock() {}
 
 // DefaultError is not safe to shallow copy because it contains
 // fields which are not value types, e.g. maps.
@@ -38,7 +38,7 @@ func (*NoCopy) Unlock() {}
 // Consequently, all methods take the type by pointer and not by value.
 // swagger:ignore
 type DefaultError struct {
-	_ NoCopy
+	_ noCopy
 	// The error ID
 	//
 	// Useful when trying to identify various errors in application logic.
@@ -92,12 +92,13 @@ type DefaultError struct {
 
 func (e *DefaultError) Clone() *DefaultError {
 	res := &DefaultError{
-		IDField:       e.IDField,
-		CodeField:     e.CodeField,
-		StatusField:   e.StatusField,
-		RIDField:      e.RIDField,
-		ReasonField:   e.ReasonField,
-		DebugField:    e.DebugField,
+		IDField:     e.IDField,
+		CodeField:   e.CodeField,
+		StatusField: e.StatusField,
+		RIDField:    e.RIDField,
+		ReasonField: e.ReasonField,
+		DebugField:  e.DebugField,
+		// Fingers crossed that the values in the map are safe to shallow copy.
 		DetailsField:  maps.Clone(e.DetailsField),
 		ErrorField:    e.ErrorField,
 		GRPCCodeField: e.GRPCCodeField,
