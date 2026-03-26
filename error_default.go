@@ -40,6 +40,7 @@ func (*noCopy) Unlock() {}
 // From https://go.dev/wiki/CodeReviewComments#receiver-type:
 // > If the receiver is a struct, array or slice and any of its elements is a pointer to something that might be mutating,
 // > prefer a pointer receiver, as it will make the intention clearer to the reader.
+// > Don’t mix receiver types. Choose either pointers or struct types for all available methods.
 // swagger:ignore
 type DefaultError struct {
 	_ noCopy
