@@ -128,16 +128,19 @@ func (e *DefaultError) Wrap(err error) {
 	e.err = err
 }
 
+// WithWrap sets the wrapped error. Mutates and returns the receiver.
 func (e *DefaultError) WithWrap(err error) *DefaultError {
 	e.err = err
 	return e
 }
 
+// WithID sets the error ID. Mutates and returns the receiver.
 func (e *DefaultError) WithID(id string) *DefaultError {
 	e.IDField = id
 	return e
 }
 
+// WithTrace sets the wrapped error, capturing a stack trace if one is not already present. Mutates and returns the receiver.
 func (e *DefaultError) WithTrace(err error) *DefaultError {
 	if st := stackTracer(nil); !stderr.As(e.err, &st) {
 		e.Wrap(errors.WithStack(err))
@@ -292,33 +295,40 @@ func (e *DefaultError) fieldViolations() (fv []*errdetails.BadRequest_FieldViola
 	return
 }
 
+// WithReason sets the human-readable reason. Mutates and returns the receiver.
 func (e *DefaultError) WithReason(reason string) *DefaultError {
 	e.ReasonField = reason
 	return e
 }
 
+// WithReasonf sets the human-readable reason using a format string. Mutates and returns the receiver.
 func (e *DefaultError) WithReasonf(reason string, args ...interface{}) *DefaultError {
 	return e.WithReason(fmt.Sprintf(reason, args...))
 }
 
+// WithError sets the error message. Mutates and returns the receiver.
 func (e *DefaultError) WithError(message string) *DefaultError {
 	e.ErrorField = message
 	return e
 }
 
+// WithErrorf sets the error message using a format string. Mutates and returns the receiver.
 func (e *DefaultError) WithErrorf(message string, args ...interface{}) *DefaultError {
 	return e.WithError(fmt.Sprintf(message, args...))
 }
 
+// WithDebugf sets the debug information using a format string. Mutates and returns the receiver.
 func (e *DefaultError) WithDebugf(debug string, args ...interface{}) *DefaultError {
 	return e.WithDebug(fmt.Sprintf(debug, args...))
 }
 
+// WithDebug sets the debug information. Mutates and returns the receiver.
 func (e *DefaultError) WithDebug(debug string) *DefaultError {
 	e.DebugField = debug
 	return e
 }
 
+// WithDetail adds a key-value pair to the error details map. Mutates and returns the receiver.
 func (e *DefaultError) WithDetail(key string, detail interface{}) *DefaultError {
 	if e.DetailsField == nil {
 		e.DetailsField = map[string]interface{}{}
@@ -327,6 +337,7 @@ func (e *DefaultError) WithDetail(key string, detail interface{}) *DefaultError 
 	return e
 }
 
+// WithDetailf adds a key-value pair to the error details map, formatting the value as a string. Mutates and returns the receiver.
 func (e *DefaultError) WithDetailf(key string, message string, args ...interface{}) *DefaultError {
 	if e.DetailsField == nil {
 		e.DetailsField = map[string]interface{}{}
