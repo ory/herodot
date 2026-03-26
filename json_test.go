@@ -20,8 +20,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var (
-	exampleError = &DefaultError{
+func exampleError() *DefaultError {
+	return &DefaultError{
 		CodeField:   http.StatusNotFound,
 		ErrorField:  "foo",
 		ReasonField: "some-reason",
@@ -30,8 +30,11 @@ var (
 			"foo": "bar",
 		},
 	}
-	onlyStatusCodeError = &statusCodeError{statusCode: http.StatusNotFound, error: errors.New("foo")}
-)
+}
+
+func newOnlyStatusCodeError() *statusCodeError {
+	return &statusCodeError{statusCode: http.StatusNotFound, error: errors.New("foo")}
+}
 
 type statusCodeError struct {
 	statusCode int
@@ -49,15 +52,15 @@ func TestWriteError(t *testing.T) {
 		expect *DefaultError
 	}{
 		{
-			err:    exampleError,
-			expect: exampleError,
+			err:    exampleError(),
+			expect: exampleError(),
 		},
 		{
-			err:    errors.WithStack(exampleError),
-			expect: exampleError,
+			err:    errors.WithStack(exampleError()),
+			expect: exampleError(),
 		},
 		{
-			err: onlyStatusCodeError,
+			err: newOnlyStatusCodeError(),
 			expect: &DefaultError{
 				StatusField: http.StatusText(http.StatusNotFound),
 				CodeField:   http.StatusNotFound,
@@ -65,7 +68,7 @@ func TestWriteError(t *testing.T) {
 			},
 		},
 		{
-			err: errors.WithStack(onlyStatusCodeError),
+			err: errors.WithStack(newOnlyStatusCodeError()),
 			expect: &DefaultError{
 				StatusField: http.StatusText(http.StatusNotFound),
 				CodeField:   http.StatusNotFound,
@@ -139,15 +142,15 @@ func TestWriteError(t *testing.T) {
 			expect *DefaultError
 		}{
 			{
-				err:    exampleError,
-				expect: exampleError,
+				err:    exampleError(),
+				expect: exampleError(),
 			},
 			{
-				err:    errors.WithStack(exampleError),
-				expect: exampleError,
+				err:    errors.WithStack(exampleError()),
+				expect: exampleError(),
 			},
 			{
-				err: onlyStatusCodeError,
+				err: newOnlyStatusCodeError(),
 				expect: &DefaultError{
 					StatusField: http.StatusText(http.StatusNotFound),
 					CodeField:   http.StatusNotFound,
@@ -155,7 +158,7 @@ func TestWriteError(t *testing.T) {
 				},
 			},
 			{
-				err: errors.WithStack(onlyStatusCodeError),
+				err: errors.WithStack(newOnlyStatusCodeError()),
 				expect: &DefaultError{
 					StatusField: http.StatusText(http.StatusNotFound),
 					CodeField:   http.StatusNotFound,
@@ -294,7 +297,7 @@ func TestWriteErrorCode(t *testing.T) {
 	h := NewJSONWriter(nil)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r.Header.Set("X-Request-ID", "foo")
-		h.WriteErrorCode(w, r, 0, errors.Wrap(exampleError, ""))
+		h.WriteErrorCode(w, r, 0, errors.Wrap(exampleError(), ""))
 	}))
 	defer ts.Close()
 
