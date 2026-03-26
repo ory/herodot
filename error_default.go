@@ -7,6 +7,7 @@ import (
 	stderr "errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 
 	"github.com/pkg/errors"
@@ -16,6 +17,20 @@ import (
 	"google.golang.org/protobuf/protoadapt"
 )
 
+// (Copied from stdlib.)
+// NoCopy may be added to structs which must not be copied
+// after the first use.
+//
+// See https://golang.org/issues/8005#issuecomment-190753527
+// for details.
+//
+// Note that it must not be embedded, due to the Lock and Unlock methods.
+type NoCopy struct{}
+
+// Lock is a no-op used by -copylocks checker from `go vet`.
+func (*NoCopy) Lock()   {}
+func (*NoCopy) Unlock() {}
+
 // DefaultError is not safe to shallow copy because it contains
 // fields which are not value types, e.g. maps.
 // A shallow copy would inadvertently share these underlying fields,
@@ -23,6 +38,7 @@ import (
 // Consequently, all methods take the type by pointer and not by value.
 // swagger:ignore
 type DefaultError struct {
+	_ NoCopy
 	// The error ID
 	//
 	// Useful when trying to identify various errors in application logic.
@@ -72,6 +88,22 @@ type DefaultError struct {
 
 	GRPCCodeField codes.Code `json:"-"`
 	err           error
+}
+
+func (e *DefaultError) Clone() *DefaultError {
+	res := &DefaultError{
+		IDField:       e.IDField,
+		CodeField:     e.CodeField,
+		StatusField:   e.StatusField,
+		RIDField:      e.RIDField,
+		ReasonField:   e.ReasonField,
+		DebugField:    e.DebugField,
+		DetailsField:  maps.Clone(e.DetailsField),
+		ErrorField:    e.ErrorField,
+		GRPCCodeField: e.GRPCCodeField,
+		err:           e.err,
+	}
+	return res
 }
 
 // StackTrace returns the error's stack trace.
@@ -239,7 +271,7 @@ func rootCauses(err fieldViolationError) []fieldViolationError {
 	return []fieldViolationError{err}
 }
 
-func (e DefaultError) fieldViolations() (fv []*errdetails.BadRequest_FieldViolation) {
+func (e *DefaultError) fieldViolations() (fv []*errdetails.BadRequest_FieldViolation) {
 	err, ok := e.err.(multiError)
 	if !ok {
 		return
