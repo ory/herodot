@@ -26,7 +26,7 @@ type testingGreeter struct {
 
 func (g *testingGreeter) SayHello(context.Context, *internal.HelloRequest) (*internal.HelloReply, error) {
 	if g.shouldErr {
-		return nil, errors.WithStack(ErrInternalServerError)
+		return nil, errors.WithStack(ErrInternalServerError())
 	}
 	return &internal.HelloReply{Message: "see, no error"}, nil
 }

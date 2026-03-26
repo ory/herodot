@@ -78,7 +78,7 @@ func Scrub5xxJSONErrorEnhancer(r *http.Request, err error) interface{} {
 	}
 
 	// We have some other error, which we always want to scrub.
-	return &ErrorContainer{Error: ToDefaultError(&ErrInternalServerError, r.Header.Get("X-Request-ID"))}
+	return &ErrorContainer{Error: ToDefaultError(ErrInternalServerError(), r.Header.Get("X-Request-ID"))}
 }
 
 func scrub5xxError(err *DefaultError) *ErrorContainer {

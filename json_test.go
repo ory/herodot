@@ -97,7 +97,7 @@ func TestWriteError(t *testing.T) {
 			},
 		},
 		{
-			err: ErrInternalServerError.WithTrace(tracedErr).WithReasonf("Unable to prepare JSON Schema for HTTP Post Body Form parsing: %s", tracedErr).WithDebugf("%+v", tracedErr),
+			err: ErrInternalServerError().WithTrace(tracedErr).WithReasonf("Unable to prepare JSON Schema for HTTP Post Body Form parsing: %s", tracedErr).WithDebugf("%+v", tracedErr),
 			expect: &DefaultError{
 				ReasonField: fmt.Sprintf("Unable to prepare JSON Schema for HTTP Post Body Form parsing: %s", tracedErr),
 				StatusField: http.StatusText(http.StatusInternalServerError),
@@ -187,7 +187,7 @@ func TestWriteError(t *testing.T) {
 				},
 			},
 			{
-				err: ErrInternalServerError.WithTrace(tracedErr).WithReasonf("Unable to prepare JSON Schema for HTTP Post Body Form parsing: %s", tracedErr).WithDebugf("%+v", tracedErr),
+				err: ErrInternalServerError().WithTrace(tracedErr).WithReasonf("Unable to prepare JSON Schema for HTTP Post Body Form parsing: %s", tracedErr).WithDebugf("%+v", tracedErr),
 				expect: &DefaultError{
 					ReasonField: "", // scrubbed
 					StatusField: http.StatusText(http.StatusInternalServerError),
