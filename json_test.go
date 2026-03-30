@@ -20,8 +20,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var (
-	exampleError = &DefaultError{
+func exampleError() *DefaultError {
+	return &DefaultError{
 		CodeField:   http.StatusNotFound,
 		ErrorField:  "foo",
 		ReasonField: "some-reason",
@@ -30,8 +30,11 @@ var (
 			"foo": "bar",
 		},
 	}
-	onlyStatusCodeError = &statusCodeError{statusCode: http.StatusNotFound, error: errors.New("foo")}
-)
+}
+
+func newOnlyStatusCodeError() *statusCodeError {
+	return &statusCodeError{statusCode: http.StatusNotFound, error: errors.New("foo")}
+}
 
 type statusCodeError struct {
 	statusCode int
@@ -49,15 +52,15 @@ func TestWriteError(t *testing.T) {
 		expect *DefaultError
 	}{
 		{
-			err:    exampleError,
-			expect: exampleError,
+			err:    exampleError(),
+			expect: exampleError(),
 		},
 		{
-			err:    errors.WithStack(exampleError),
-			expect: exampleError,
+			err:    errors.WithStack(exampleError()),
+			expect: exampleError(),
 		},
 		{
-			err: onlyStatusCodeError,
+			err: newOnlyStatusCodeError(),
 			expect: &DefaultError{
 				StatusField: http.StatusText(http.StatusNotFound),
 				CodeField:   http.StatusNotFound,
@@ -65,7 +68,7 @@ func TestWriteError(t *testing.T) {
 			},
 		},
 		{
-			err: errors.WithStack(onlyStatusCodeError),
+			err: errors.WithStack(newOnlyStatusCodeError()),
 			expect: &DefaultError{
 				StatusField: http.StatusText(http.StatusNotFound),
 				CodeField:   http.StatusNotFound,
@@ -97,7 +100,7 @@ func TestWriteError(t *testing.T) {
 			},
 		},
 		{
-			err: ErrInternalServerError.WithTrace(tracedErr).WithReasonf("Unable to prepare JSON Schema for HTTP Post Body Form parsing: %s", tracedErr).WithDebugf("%+v", tracedErr),
+			err: ErrInternalServerError().WithTrace(tracedErr).WithReasonf("Unable to prepare JSON Schema for HTTP Post Body Form parsing: %s", tracedErr).WithDebugf("%+v", tracedErr),
 			expect: &DefaultError{
 				ReasonField: fmt.Sprintf("Unable to prepare JSON Schema for HTTP Post Body Form parsing: %s", tracedErr),
 				StatusField: http.StatusText(http.StatusInternalServerError),
@@ -139,15 +142,15 @@ func TestWriteError(t *testing.T) {
 			expect *DefaultError
 		}{
 			{
-				err:    exampleError,
-				expect: exampleError,
+				err:    exampleError(),
+				expect: exampleError(),
 			},
 			{
-				err:    errors.WithStack(exampleError),
-				expect: exampleError,
+				err:    errors.WithStack(exampleError()),
+				expect: exampleError(),
 			},
 			{
-				err: onlyStatusCodeError,
+				err: newOnlyStatusCodeError(),
 				expect: &DefaultError{
 					StatusField: http.StatusText(http.StatusNotFound),
 					CodeField:   http.StatusNotFound,
@@ -155,7 +158,7 @@ func TestWriteError(t *testing.T) {
 				},
 			},
 			{
-				err: errors.WithStack(onlyStatusCodeError),
+				err: errors.WithStack(newOnlyStatusCodeError()),
 				expect: &DefaultError{
 					StatusField: http.StatusText(http.StatusNotFound),
 					CodeField:   http.StatusNotFound,
@@ -187,7 +190,7 @@ func TestWriteError(t *testing.T) {
 				},
 			},
 			{
-				err: ErrInternalServerError.WithTrace(tracedErr).WithReasonf("Unable to prepare JSON Schema for HTTP Post Body Form parsing: %s", tracedErr).WithDebugf("%+v", tracedErr),
+				err: ErrInternalServerError().WithTrace(tracedErr).WithReasonf("Unable to prepare JSON Schema for HTTP Post Body Form parsing: %s", tracedErr).WithDebugf("%+v", tracedErr),
 				expect: &DefaultError{
 					ReasonField: "", // scrubbed
 					StatusField: http.StatusText(http.StatusInternalServerError),
@@ -294,7 +297,7 @@ func TestWriteErrorCode(t *testing.T) {
 	h := NewJSONWriter(nil)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r.Header.Set("X-Request-ID", "foo")
-		h.WriteErrorCode(w, r, 0, errors.Wrap(exampleError, ""))
+		h.WriteErrorCode(w, r, 0, errors.Wrap(exampleError(), ""))
 	}))
 	defer ts.Close()
 
@@ -431,12 +434,12 @@ func TestOryErrorIDHeader(t *testing.T) {
 	}{
 		{
 			name:           "sets ID in header",
-			err:            &ErrMisconfiguration,
+			err:            ErrMisconfiguration(),
 			expectedHeader: "invalid_configuration",
 		},
 		{
 			name:           "sets empty header without ID",
-			err:            &ErrNotFound,
+			err:            ErrNotFound(),
 			expectedHeader: "",
 		},
 		{
@@ -451,7 +454,7 @@ func TestOryErrorIDHeader(t *testing.T) {
 		},
 		{
 			name:           "upstream error sets header",
-			err:            &ErrUpstreamError,
+			err:            ErrUpstreamError(),
 			expectedHeader: "upstream_error",
 		},
 	} {

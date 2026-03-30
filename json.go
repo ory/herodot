@@ -68,9 +68,9 @@ func defaultJSONErrorEnhancer(r *http.Request, err error) interface{} {
 func Scrub5xxJSONErrorEnhancer(r *http.Request, err error) interface{} {
 	payload := defaultJSONErrorEnhancer(r, err)
 
-	if de, ok := payload.(DefaultError); ok {
+	if de, ok := payload.(*DefaultError); ok {
 		if de.StatusCode() >= 500 {
-			return scrub5xxError(&de)
+			return scrub5xxError(de)
 		}
 		return payload
 	}
@@ -82,7 +82,7 @@ func Scrub5xxJSONErrorEnhancer(r *http.Request, err error) interface{} {
 	}
 
 	// We have some other error, which we always want to scrub.
-	return &ErrorContainer{Error: ToDefaultError(&ErrInternalServerError, r.Header.Get("X-Request-ID"))}
+	return &ErrorContainer{Error: ToDefaultError(ErrInternalServerError(), r.Header.Get("X-Request-ID"))}
 }
 
 func scrub5xxError(err *DefaultError) *ErrorContainer {
@@ -173,15 +173,15 @@ func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code
 		w.Header().Set("Ory-Error-Id", id.ID())
 	}
 	if de, ok := payload.(*DefaultError); ok && !h.EnableDebug {
-		de2 := *de
+		de2 := de.Clone()
 		de2.DebugField = ""
-		payload = &de2
+		payload = de2
 	}
 	if ec, ok := payload.(*ErrorContainer); ok && !h.EnableDebug {
-		de2 := *ec.Error
+		de2 := ec.Error.Clone()
 		de2.DebugField = ""
 		ec2 := *ec
-		ec2.Error = &de2
+		ec2.Error = de2
 		payload = ec2
 	}
 
