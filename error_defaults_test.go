@@ -28,7 +28,7 @@ func TestErrorFunctionsNoDataRace(t *testing.T) {
 	}
 
 	var wg sync.WaitGroup
-	for i := 0; i < goroutines; i++ {
+	for i := range goroutines {
 		wg.Go(func() {
 			fn := constructors[i%len(constructors)]
 			err := fn().
