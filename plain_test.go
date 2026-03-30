@@ -21,12 +21,12 @@ func TestTextWriterOryErrorIDHeader(t *testing.T) {
 	}{
 		{
 			name:           "error with ID sets header",
-			err:            &ErrMisconfiguration,
+			err:            ErrMisconfiguration(),
 			expectedHeader: "invalid_configuration",
 		},
 		{
 			name:           "error without ID does not set header",
-			err:            &ErrNotFound,
+			err:            ErrNotFound(),
 			expectedHeader: "",
 		},
 		{
@@ -41,7 +41,7 @@ func TestTextWriterOryErrorIDHeader(t *testing.T) {
 		},
 		{
 			name:           "upstream error sets header",
-			err:            &ErrUpstreamError,
+			err:            ErrUpstreamError(),
 			expectedHeader: "upstream_error",
 		},
 	} {

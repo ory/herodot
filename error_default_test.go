@@ -77,13 +77,11 @@ func TestToDefaultError(t *testing.T) {
 		assert.EqualValues(t, map[string]interface{}{"foo-debug": "bar"}, ToDefaultError(e, "").Details())
 	})
 
-	t.Run("case=details copies map", func(t *testing.T) {
-		eBar := DefaultError{}.WithDetail("foo", "bar")
+	t.Run("case=details uses the same map", func(t *testing.T) {
+		eBar := (&DefaultError{}).WithDetail("foo", "bar")
 		eBaz := eBar.WithDetail("foo", "baz")
 		eBazBar := eBaz.WithDetailf("bar", "baz%s", "bar")
-		assert.EqualValues(t, map[string]interface{}{"foo": "bar"}, ToDefaultError(eBar, "").Details())
-		assert.EqualValues(t, map[string]interface{}{"foo": "baz"}, ToDefaultError(eBaz, "").Details())
-		assert.EqualValues(t, map[string]interface{}{"foo": "baz", "bar": "bazbar"}, ToDefaultError(eBazBar, "").Details())
+		assert.Equal(t, eBaz.Details(), eBazBar.Details())
 	})
 
 	t.Run("case=rid", func(t *testing.T) {
