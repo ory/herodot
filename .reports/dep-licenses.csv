@@ -1,3 +1,7 @@
 
-"github.com/stretchr/testify","MIT"
+"github.com/pkg/errors","BSD-2-Clause"
+"google.golang.org/genproto/googleapis/rpc/errdetails","Apache-2.0"
+"google.golang.org/protobuf","BSD-3-Clause"
+"google.golang.org/grpc/backoff","Apache-2.0"
+"google.golang.org/protobuf/internal/detrand","BSD-3-Clause"
 
