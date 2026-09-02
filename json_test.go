@@ -309,6 +309,55 @@ func TestWriteErrorCode(t *testing.T) {
 	assert.Equal(t, "foo", j.Error.RequestID())
 }
 
+func TestWriteErrorCodeJSONStatus(t *testing.T) {
+	t.Run("plain error uses forced code in JSON payload", func(t *testing.T) {
+		h := NewJSONWriter(nil)
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			h.WriteErrorCode(w, r, http.StatusUnauthorized, errors.New("error"))
+		}))
+		defer ts.Close()
+
+		resp, err := http.Get(ts.URL + "/do")
+		require.NoError(t, err)
+		defer resp.Body.Close()
+		body, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+
+		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode, "%s", body)
+
+		var j ErrorContainer
+		require.NoError(t, json.NewDecoder(bytes.NewBuffer(body)).Decode(&j), "%s", body)
+		assert.Equal(t, http.StatusUnauthorized, j.Error.StatusCode(), "%s", body)
+		assert.Equal(t, http.StatusText(http.StatusUnauthorized), j.Error.Status(), "%s", body)
+		assert.Equal(t, "error", j.Error.Error(), "%s", body)
+	})
+
+	t.Run("does not mutate the original error", func(t *testing.T) {
+		orig := exampleError()
+		origCode, origStatus := orig.StatusCode(), orig.Status()
+
+		h := NewJSONWriter(nil)
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			h.WriteErrorCode(w, r, http.StatusUnauthorized, orig)
+		}))
+		defer ts.Close()
+
+		resp, err := http.Get(ts.URL + "/do")
+		require.NoError(t, err)
+		defer resp.Body.Close()
+		body, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+
+		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode, "%s", body)
+
+		var j ErrorContainer
+		require.NoError(t, json.NewDecoder(bytes.NewBuffer(body)).Decode(&j), "%s", body)
+		assert.Equal(t, http.StatusUnauthorized, j.Error.StatusCode(), "%s", body)
+		assert.Equal(t, origCode, orig.StatusCode())
+		assert.Equal(t, origStatus, orig.Status())
+	})
+}
+
 func TestWriteJSON(t *testing.T) {
 	foo := map[string]string{"foo": "bar"}
 
