@@ -76,3 +76,29 @@ func TestGRPCInterceptors(t *testing.T) {
 	s.Stop()
 	require.NoError(t, serveErr.Wait())
 }
+
+// TestGRPCNativeUnwrap verifies that modern grpc-go handles wrapped herodot errors
+// natively without registering UnaryErrorUnwrapInterceptor (resolving grpc/grpc-go#2934).
+func TestGRPCNativeUnwrap(t *testing.T) {
+	server := &testingGreeter{shouldErr: true}
+	s := grpc.NewServer()
+	internal.RegisterGreeterServer(s, server)
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+
+	serveErr := &errgroup.Group{}
+	serveErr.Go(func() error {
+		return s.Serve(l)
+	})
+
+	conn, err := grpc.Dial(l.Addr().String(), grpc.WithInsecure())
+	require.NoError(t, err)
+	c := internal.NewGreeterClient(conn)
+
+	_, err = c.SayHello(context.Background(), &internal.HelloRequest{})
+	assert.Equal(t, codes.Internal, status.Code(err))
+
+	s.Stop()
+	require.NoError(t, serveErr.Wait())
+}
+
