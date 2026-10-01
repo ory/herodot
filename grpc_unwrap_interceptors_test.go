@@ -93,6 +93,7 @@ func TestGRPCNativeUnwrap(t *testing.T) {
 
 	conn, err := grpc.Dial(l.Addr().String(), grpc.WithInsecure())
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = conn.Close() })
 	c := internal.NewGreeterClient(conn)
 
 	_, err = c.SayHello(context.Background(), &internal.HelloRequest{})
@@ -101,4 +102,3 @@ func TestGRPCNativeUnwrap(t *testing.T) {
 	s.Stop()
 	require.NoError(t, serveErr.Wait())
 }
-
