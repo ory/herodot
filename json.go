@@ -95,6 +95,37 @@ func scrub5xxError(err *DefaultError) *ErrorContainer {
 	}}
 }
 
+// forceJSONErrorStatusCode applies WriteErrorCode's forced HTTP status to the
+// JSON payload so the body code/status match the response header.
+func forceJSONErrorStatusCode(payload interface{}, code int) interface{} {
+	switch p := payload.(type) {
+	case *ErrorContainer:
+		if p == nil || p.Error == nil {
+			return payload
+		}
+		return &ErrorContainer{Error: forceDefaultErrorStatusCode(p.Error, code)}
+	case ErrorContainer:
+		if p.Error == nil {
+			return payload
+		}
+		return ErrorContainer{Error: forceDefaultErrorStatusCode(p.Error, code)}
+	default:
+		return payload
+	}
+}
+
+func forceDefaultErrorStatusCode(de *DefaultError, code int) *DefaultError {
+	if de == nil || de.CodeField == code {
+		return de
+	}
+	out := de.Clone()
+	if out.StatusField == "" || out.StatusField == http.StatusText(de.CodeField) {
+		out.StatusField = http.StatusText(code)
+	}
+	out.CodeField = code
+	return out
+}
+
 // Write a response object to the ResponseWriter with status code 200.
 func (h *JSONWriter) Write(w http.ResponseWriter, r *http.Request, e interface{}, opts ...EncoderOptions) {
 	h.WriteCode(w, r, http.StatusOK, e, opts...)
@@ -169,6 +200,7 @@ func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code
 	if h.ErrorEnhancer != nil {
 		payload = h.ErrorEnhancer(r, err)
 	}
+	payload = forceJSONErrorStatusCode(payload, code)
 	if id, ok := payload.(interface{ ID() string }); ok {
 		w.Header().Set("Ory-Error-Id", id.ID())
 	}
