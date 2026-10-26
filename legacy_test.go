@@ -19,6 +19,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
 	herodotv2 "github.com/ory/herodot/v2"
 	"github.com/ory/herodot/v2/grpcerr"
@@ -243,4 +244,52 @@ func TestRecorder(t *testing.T) {
 		assert.EqualValues(t, codes.NotFound, got.Shadow.Code)
 		assert.Len(t, got.Shadow.Details, 1)
 	})
+}
+
+type recordingTestStream struct{ grpc.ServerStream }
+
+func (recordingTestStream) Context() context.Context { return context.Background() }
+
+func TestGRPCRecorderPreservesOriginalError(t *testing.T) {
+	for _, original := range []error{
+		flowExpired.New(),
+		Legacy(ErrNotFound(), identityNotFound.New()),
+		herodotv2.Annotate(Legacy(ErrNotFound(), identityNotFound.New()), herodotv2.Metadata("outer", "kept")),
+		nil,
+	} {
+		for _, transport := range []string{"unary", "stream"} {
+			t.Run(fmt.Sprintf("%s/%T", transport, original), func(t *testing.T) {
+				rec := &memoryRecorder{}
+				calls := 0
+				var err error
+				if transport == "unary" {
+					var resp any
+					resp, err = RecordingUnaryErrorUnwrapInterceptor(rec)(context.Background(), nil,
+						&grpc.UnaryServerInfo{FullMethod: "/test"}, func(context.Context, any) (any, error) {
+							calls++
+							return "response", original
+						})
+					assert.Equal(t, "response", resp)
+				} else {
+					err = RecordingStreamErrorUnwrapInterceptor(rec)(nil, recordingTestStream{},
+						&grpc.StreamServerInfo{FullMethod: "/test"}, func(any, grpc.ServerStream) error {
+							calls++
+							return original
+						})
+				}
+				assert.Equal(t, 1, calls)
+				want := unwrapGRPCStatusError(context.Background(), original)
+				assert.True(t, proto.Equal(status.Convert(want).Proto(), status.Convert(err).Proto()))
+				if original == nil {
+					require.Empty(t, rec.grpc)
+					return
+				}
+				require.Len(t, rec.grpc, 1)
+				got := rec.grpc[0]
+				assert.Equal(t, "/test", got.FullMethod)
+				assert.True(t, proto.Equal(status.Convert(err).Proto(), got.Status))
+				assert.True(t, proto.Equal(grpcerr.ToStatus(context.Background(), original, false).Proto(), got.Shadow))
+			})
+		}
+	}
 }

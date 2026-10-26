@@ -124,8 +124,9 @@ func (h *JSONWriter) record(rw *recordingResponseWriter, r *http.Request, err er
 // and records every error with rec.
 func RecordingUnaryErrorUnwrapInterceptor(rec ErrorRecorder) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		resp, err := UnaryErrorUnwrapInterceptor(ctx, req, info, handler)
-		recordGRPC(ctx, rec, info.FullMethod, err)
+		resp, original := handler(ctx, req)
+		err := unwrapGRPCStatusError(ctx, original)
+		recordGRPC(ctx, rec, info.FullMethod, err, original)
 		return resp, err
 	}
 }
@@ -134,19 +135,20 @@ func RecordingUnaryErrorUnwrapInterceptor(rec ErrorRecorder) grpc.UnaryServerInt
 // StreamErrorUnwrapInterceptor and records every error with rec.
 func RecordingStreamErrorUnwrapInterceptor(rec ErrorRecorder) grpc.StreamServerInterceptor {
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		err := StreamErrorUnwrapInterceptor(srv, ss, info, handler)
-		recordGRPC(ss.Context(), rec, info.FullMethod, err)
+		original := handler(srv, ss)
+		err := unwrapGRPCStatusError(ss.Context(), original)
+		recordGRPC(ss.Context(), rec, info.FullMethod, err, original)
 		return err
 	}
 }
 
-func recordGRPC(ctx context.Context, rec ErrorRecorder, method string, err error) {
+func recordGRPC(ctx context.Context, rec ErrorRecorder, method string, err, original error) {
 	if err == nil {
 		return
 	}
 	rec.RecordGRPCError(GRPCErrorRecording{
 		FullMethod: method,
 		Status:     status.Convert(err).Proto(),
-		Shadow:     grpcerr.ToStatus(ctx, err, false).Proto(),
+		Shadow:     grpcerr.ToStatus(ctx, original, false).Proto(),
 	})
 }
