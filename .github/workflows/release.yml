@@ -1,0 +1,49 @@
+name: Release
+
+# Releases herodot/v2, herodot v1, or both, from master. A herodot/v2 release
+# bumps the root module to require it in the commit that gets tagged; see
+# scripts/release.sh.
+on:
+  workflow_dispatch:
+    inputs:
+      v2:
+        description: herodot/v2 version to release, e.g. v2.1.0 (empty to skip)
+        required: false
+      v1:
+        description: herodot v1 version to release, e.g. v0.11.0 (empty to skip)
+        required: false
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+          # Pushes to master as ory-bot, like the other automated commits.
+          token: ${{ secrets.ORY_BOT_PAT || github.token }}
+      - uses: actions/setup-go@v5
+        with:
+          # The release helpers in v2/tools need the newest Go of all modules.
+          go-version-file: v2/tools/go.mod
+      - run: go test -timeout=5m ./... ./v2/...
+      - name: Release
+        env:
+          V2: ${{ inputs.v2 }}
+          V1: ${{ inputs.v1 }}
+        run: |
+          git config user.name ory-bot
+          git config user.email 60093411+ory-bot@users.noreply.github.com
+          args=(--push)
+          [[ -z "$V2" ]] || args+=(--v2 "$V2")
+          [[ -z "$V1" ]] || args+=(--v1 "$V1")
+          scripts/release.sh "${args[@]}"

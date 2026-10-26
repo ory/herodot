@@ -37,6 +37,10 @@ type JSONWriter struct {
 	Reporter      ErrorReporter
 	ErrorEnhancer func(r *http.Request, err error) interface{}
 	EnableDebug   bool
+
+	// Recorder, if set, records every error response together with its
+	// AIP shadow rendering. See ErrorRecorder.
+	Recorder ErrorRecorder
 }
 
 var _ Writer = (*JSONWriter)(nil)
@@ -135,11 +139,13 @@ func (h *JSONWriter) WriteCreated(w http.ResponseWriter, r *http.Request, locati
 }
 
 // WriteError writes an error to ResponseWriter and tries to extract the error's status code by
-// asserting statusCodeCarrier. If the error does not implement statusCodeCarrier, the status code
-// is set to 500.
+// asserting statusCodeCarrier. If the error does not implement statusCodeCarrier, but contains a
+// herodotv2.Error, the status code is that error's HTTP status. Otherwise, it is set to 500.
 func (h *JSONWriter) WriteError(w http.ResponseWriter, r *http.Request, err error, opts ...Option) {
 	if c := StatusCodeCarrier(nil); stderr.As(err, &c) {
 		h.WriteErrorCode(w, r, c.StatusCode(), err)
+	} else if e, ok := toV2Error(err); ok {
+		h.WriteErrorCode(w, r, e.Definition().Code().HTTPStatus(), err, opts...)
 	} else {
 		h.WriteErrorCode(w, r, http.StatusInternalServerError, err, opts...)
 	}
@@ -148,6 +154,12 @@ func (h *JSONWriter) WriteError(w http.ResponseWriter, r *http.Request, err erro
 // WriteErrorCode writes an error to ResponseWriter and forces an error code.
 func (h *JSONWriter) WriteErrorCode(w http.ResponseWriter, r *http.Request, code int, err error, opts ...Option) {
 	o := newOptions(opts)
+
+	if h.Recorder != nil {
+		rw := &recordingResponseWriter{ResponseWriter: w}
+		defer h.record(rw, r, err)
+		w = rw
+	}
 
 	if code == 0 {
 		code = http.StatusInternalServerError
