@@ -377,7 +377,14 @@ func (e *DefaultError) Format(s fmt.State, verb rune) {
 	}
 }
 
+// ToDefaultError converts err to a DefaultError, using the carrier interfaces
+// that err's tree implements. If the tree contains a herodotv2.Error but no
+// StatusCodeCarrier, the DefaultError renders that error in the legacy shape.
 func ToDefaultError(err error, requestID string) *DefaultError {
+	if e, ok := toV2Error(err); ok {
+		return fromV2Error(e, err, requestID)
+	}
+
 	de := &DefaultError{
 		RIDField:     requestID,
 		CodeField:    http.StatusInternalServerError,

@@ -9,6 +9,8 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
+
+	"github.com/ory/herodot/v2/grpcerr"
 )
 
 type grpcStatusError interface {
@@ -16,11 +18,16 @@ type grpcStatusError interface {
 	GRPCStatus() *status.Status
 }
 
-func unwrapGRPCStatusError(err error) error {
+func unwrapGRPCStatusError(ctx context.Context, err error) error {
 	if err == nil {
 		return nil
 	}
 
+	if _, ok := toV2Error(err); ok {
+		// Reasons added during the migration have no legacy status. This
+		// also takes precedence over gRPC statuses in the error's cause.
+		return grpcerr.ToStatus(ctx, err, false).Err()
+	}
 	var innerErr grpcStatusError
 	if errors.As(err, &innerErr) {
 		return innerErr
@@ -32,12 +39,12 @@ func unwrapGRPCStatusError(err error) error {
 // See https://github.com/grpc/grpc-go/issues/2934 for why this is necessary.
 func UnaryErrorUnwrapInterceptor(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	resp, err := handler(ctx, req)
-	return resp, unwrapGRPCStatusError(err)
+	return resp, unwrapGRPCStatusError(ctx, err)
 }
 
 // StreamErrorUnwrapInterceptor is a gRPC server-side interceptor that unwraps herodot errors for Streaming RPCs.
 // See https://github.com/grpc/grpc-go/issues/2934 for why this is necessary.
 func StreamErrorUnwrapInterceptor(srv interface{}, ss grpc.ServerStream, _ *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 	err := handler(srv, ss)
-	return unwrapGRPCStatusError(err)
+	return unwrapGRPCStatusError(ss.Context(), err)
 }

@@ -17,11 +17,30 @@ jobs:
         uses: actions/checkout@v2
       - uses: actions/setup-go@v2
         with:
-          go-version: "1.25"
-      - run: go test -coverprofile=coverage.out -timeout=1m ./...
+          go-version: "1.26"
+      - run: go test -coverprofile=coverage.out -timeout=1m ./... ./v2/...
       - run: go tool gcov2lcov -infile=coverage.out -outfile=coverage.lcov
       - name: Coveralls
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: coverage.lcov
+
+  generate:
+    name: Check generated code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          # buf, run from v2/tools/go.mod, requires a newer Go than herodot.
+          go-version-file: v2/tools/go.mod
+      - run: make gen
+      - run: git diff --exit-code
+      - name: Breaking changes in the code table and catalog options
+        if: github.event_name == 'pull_request'
+        working-directory: v2
+        run:
+          GOWORK=off go tool -modfile=tools/go.mod buf breaking --against
+          "https://github.com/${{ github.repository }}.git#branch=${{
+          github.base_ref }},subdir=v2"

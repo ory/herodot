@@ -1,0 +1,9 @@
+version: v2
+plugins:
+  - local: ["go", "tool", "protoc-gen-go"]
+    out: .
+    opt: module=github.com/ory/herodot/v2
+  # Generates the Code table of package herodot from herodot.proto.
+  - local: ["go", "run", "./cmd/protoc-gen-herodot"]
+    out: .
+    opt: [module=github.com/ory/herodot/v2, lang=codetable]

@@ -1,0 +1,37 @@
+// Copyright © 2026 Ory Corp
+// SPDX-License-Identifier: Apache-2.0
+
+syntax = "proto3";
+
+package ory.kratos.errors.v1;
+
+import "ory/herodot/v1/herodot.proto";
+
+option go_package = "github.com/ory/kratos/errors/v1;kratoserr";
+
+enum FlowReason {
+  option (ory.herodot.v1.catalog).domain = "kratos.ory.com";
+
+  FLOW_REASON_UNSPECIFIED = 0;
+
+  // The flow's expiry time has passed.
+  // Start a new flow.
+  FLOW_EXPIRED = 1 [(ory.herodot.v1.value).reason = {
+    code: EXPIRED
+    message: "The self-service flow has expired."
+    metadata_keys: ["flowId"]
+  }];
+
+  BROWSER_LOCATION_CHANGE_REQUIRED = 2 [(ory.herodot.v1.value).reason = {
+    code: UNPROCESSABLE
+    message: "The browser must navigate to a different location to continue."
+  }];
+
+  OLD_FLOW_ERROR = 3 [
+    deprecated = true,
+    (ory.herodot.v1.value).reason = {
+      code: INVALID_ARGUMENT
+      message: "A \"quoted\" | piped message."
+    }
+  ];
+}

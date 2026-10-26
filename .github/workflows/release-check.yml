@@ -1,0 +1,26 @@
+name: Release check
+
+# Verifies a release against the public module proxy and checksum database:
+# the root module must require the latest herodot/v2 release, and its go.sum
+# must match what sum.golang.org recorded for it. scripts/release.sh computed
+# those lines before the tag existed, so this confirms them.
+on:
+  push:
+    tags:
+      - "v0.*"
+      - "v2.*"
+  workflow_dispatch:
+
+jobs:
+  check:
+    name: Root module requires the latest herodot/v2
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      # Downloading herodot/v2 verifies go.sum against sum.golang.org.
+      - run: scripts/check-herodot-v2.sh
