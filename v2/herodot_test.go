@@ -290,3 +290,38 @@ type wrapStack struct {
 }
 
 func (w wrapStack) Unwrap() error { return w.inner }
+
+func TestErrorPointers(t *testing.T) {
+	e := flowExpired.New(herodot.Metadata("flowId", "1"))
+	target := flowExpired.New()
+	for _, err := range []error{&e, fmt.Errorf("wrapped: %w", &e)} {
+		assert.Equal(t, e, herodot.From(err))
+		assert.True(t, flowExpired.Matches(err))
+		assert.ErrorIs(t, err, target)
+		assert.ErrorIs(t, err, &target)
+	}
+	assert.ErrorIs(t, e, &target)
+	assert.NotErrorIs(t, e, (*herodot.Error)(nil))
+	assert.Equal(t, herodot.Error{}, herodot.From((*herodot.Error)(nil)))
+	assert.Equal(t, herodot.Error{}, herodot.From(fmt.Errorf("wrapped: %w", (*herodot.Error)(nil))))
+
+	annotated := herodot.Annotate(&e, herodot.Metadata("flowId", "outer"))
+	assert.Equal(t, map[string]string{"flowId": "outer"}, herodot.From(annotated).Metadata())
+	assert.Equal(t, flowExpired, herodot.From(errors.Join(errors.New("first"), &e)).Definition())
+}
+
+type pointerAsError struct{ e *herodot.Error }
+
+func (pointerAsError) Error() string { return "custom As" }
+func (p pointerAsError) As(target any) bool {
+	if t, ok := target.(**herodot.Error); ok {
+		*t = p.e
+		return true
+	}
+	return false
+}
+
+func TestFromCustomPointerAs(t *testing.T) {
+	e := flowExpired.New()
+	assert.Equal(t, e, herodot.From(pointerAsError{&e}))
+}

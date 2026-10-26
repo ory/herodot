@@ -293,3 +293,17 @@ func TestGRPCRecorderPreservesOriginalError(t *testing.T) {
 		}
 	}
 }
+
+func TestBareErrorPointer(t *testing.T) {
+	e := flowExpired.New()
+	for _, err := range []error{&e, fmt.Errorf("wrapped: %w", &e)} {
+		w := httptest.NewRecorder()
+		NewJSONWriter(nil).WriteError(w, httptest.NewRequest("GET", "/", nil), err)
+		assert.Equal(t, http.StatusGone, w.Code)
+		assert.Equal(t, "flow_expired", w.Header().Get("Ory-Error-Id"))
+		de := ToDefaultError(err, "")
+		assert.Equal(t, http.StatusGone, de.StatusCode())
+		assert.True(t, flowExpired.Matches(de))
+		assert.Equal(t, codes.FailedPrecondition, status.Code(unwrapGRPCStatusError(context.Background(), err)))
+	}
+}

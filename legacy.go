@@ -142,7 +142,10 @@ func toV2Error(err error) (herodotv2.Error, bool) {
 		return herodotv2.Error{}, false
 	}
 	if e := (herodotv2.Error{}); !stderr.As(err, &e) {
-		return herodotv2.Error{}, false
+		var p *herodotv2.Error
+		if !stderr.As(err, &p) || p == nil {
+			return herodotv2.Error{}, false
+		}
 	}
 	return herodotv2.From(err), true
 }

@@ -36,7 +36,7 @@ func Annotate(err error, details ...Detail) error {
 
 // From returns the Error that transports render for err:
 //
-//  1. the first Error in err's tree, searched like errors.As;
+//  1. the first Error or *Error in err's tree, searched like errors.As;
 //  2. otherwise the classification of the first Classifier that has one;
 //  3. otherwise Internal, with err as the cause.
 //
@@ -45,7 +45,7 @@ func Annotate(err error, details ...Detail) error {
 // violations are appended. Annotations below the chosen error, in its cause,
 // are ignored. In case 3, all annotations are dropped.
 //
-// From(nil) returns the zero Error.
+// From(nil) and a nil *Error return the zero Error.
 func From(err error) Error {
 	if err == nil {
 		return Error{}
@@ -63,10 +63,22 @@ func asError(err error) (Error, bool) {
 	switch e := err.(type) {
 	case Error:
 		return e, true
+	case *Error:
+		if e == nil {
+			return Error{}, true
+		}
+		return *e, true
 	case interface{ As(any) bool }:
 		var t Error
 		if e.As(&t) {
 			return t, true
+		}
+		var p *Error
+		if e.As(&p) {
+			if p == nil {
+				return Error{}, true
+			}
+			return *p, true
 		}
 	}
 	return Error{}, false

@@ -55,13 +55,19 @@ func (e Error) Violations() []FieldViolation { return slices.Clone(e.d().violati
 // Unwrap returns the cause.
 func (e Error) Unwrap() error { return e.d().cause }
 
-// Is reports whether target is an Error with the same identity (domain and
+// Is reports whether target is an Error or non-nil *Error with the same identity (domain and
 // reason), so that errors.Is works between Errors. The code, messages, details
 // and cause are ignored.
 // errors.As(err, &e) with var e herodot.Error needs no method.
 func (e Error) Is(target error) bool {
-	t, ok := target.(Error)
-	return ok && t.Definition().SameIdentity(e.Definition())
+	switch t := target.(type) {
+	case Error:
+		return t.Definition().SameIdentity(e.Definition())
+	case *Error:
+		return t != nil && t.Definition().SameIdentity(e.Definition())
+	default:
+		return false
+	}
 }
 
 // Format implements fmt.Formatter. %s and %v print the message, %q the quoted
