@@ -40,7 +40,15 @@ jobs:
       - name: Breaking changes in the code table and catalog options
         if: github.event_name == 'pull_request'
         working-directory: v2
-        run:
-          GOWORK=off go tool -modfile=tools/go.mod buf breaking --against
-          "https://github.com/${{ github.repository }}.git#branch=${{
-          github.base_ref }},subdir=v2"
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git fetch --depth=1 origin "$BASE_SHA"
+          if ! git cat-file -e "${BASE_SHA}:v2/buf.yaml" 2>/dev/null; then
+            echo "The base commit has no v2 Buf module; skipping the initial breaking check."
+            exit 0
+          fi
+          baseline="$(mktemp -d)"
+          trap 'rm -rf "$baseline"' EXIT
+          git archive "$BASE_SHA" v2 | tar -x -C "$baseline"
+          GOWORK=off go tool -modfile=tools/go.mod buf breaking --against "$baseline/v2"
