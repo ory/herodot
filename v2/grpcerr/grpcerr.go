@@ -7,6 +7,7 @@ package grpcerr
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
@@ -34,10 +35,14 @@ func ToStatus(ctx context.Context, err error, debug bool) *status.Status {
 	e := herodot.From(err)
 	def := e.Definition()
 
+	mdValues := make(map[string]string)
+	for k, v := range e.Metadata() {
+		mdValues[validUTF8(k)] = validUTF8(v)
+	}
 	details := []protoadapt.MessageV1{&errdetails.ErrorInfo{
 		Reason:   def.Reason(),
 		Domain:   def.Domain(),
-		Metadata: e.Metadata(),
+		Metadata: mdValues,
 	}}
 	if c := def.Code(); !c.IsCanonical() {
 		// The status code is canonical. Keep the refinement for receivers.
@@ -45,30 +50,35 @@ func ToStatus(ctx context.Context, err error, debug bool) *status.Status {
 	}
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		if ids := md.Get(RequestIDKey); len(ids) > 0 && ids[0] != "" {
-			details = append(details, &errdetails.RequestInfo{RequestId: ids[0]})
+			details = append(details, &errdetails.RequestInfo{RequestId: validUTF8(ids[0])})
 		}
 	}
 	if vs := e.Violations(); len(vs) > 0 {
 		br := &errdetails.BadRequest{FieldViolations: make([]*errdetails.BadRequest_FieldViolation, len(vs))}
 		for i, v := range vs {
-			br.FieldViolations[i] = &errdetails.BadRequest_FieldViolation{Field: v.Field, Description: v.Description}
+			br.FieldViolations[i] = &errdetails.BadRequest_FieldViolation{Field: validUTF8(v.Field), Description: validUTF8(v.Description)}
 		}
 		details = append(details, br)
 	}
 	if debug {
 		if info, ok := e.DebugInfo(); ok {
-			details = append(details, &errdetails.DebugInfo{StackEntries: info.StackEntries, Detail: info.Detail})
+			for i := range info.StackEntries {
+				info.StackEntries[i] = validUTF8(info.StackEntries[i])
+			}
+			details = append(details, &errdetails.DebugInfo{StackEntries: info.StackEntries, Detail: validUTF8(info.Detail)})
 		}
 	}
 
-	s, wErr := status.New(codes.Code(def.Code().Canonical()), e.Error()).WithDetails(details...)
+	base := status.New(codes.Code(def.Code().Canonical()), validUTF8(e.Error()))
+	s, wErr := base.WithDetails(details...)
 	if wErr != nil {
-		// Only fails for an OK code or unmarshalable details, neither of
-		// which can happen here.
-		panic(wErr)
+		// Preserve the status even if a detail cannot be serialized.
+		return base
 	}
 	return s
 }
+
+func validUTF8(s string) string { return strings.ToValidUTF8(s, "\uFFFD") }
 
 // UnaryServerInterceptor converts errors returned by unary handlers with
 // ToStatus. It replaces herodot v1's UnaryErrorUnwrapInterceptor.

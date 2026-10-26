@@ -165,3 +165,30 @@ func TestInterceptors(t *testing.T) {
 type stream struct{ grpc.ServerStream }
 
 func (stream) Context() context.Context { return context.Background() }
+
+type malformedCause struct{}
+
+func (malformedCause) Error() string        { return "cause\xff" }
+func (malformedCause) StackTrace() []string { return []string{"frame\xff"} }
+
+func TestToStatusInvalidUTF8(t *testing.T) {
+	def := herodot.Define("ory.com", "INVALID_INPUT", herodot.CodeInvalidArgument, "Message\xff")
+	e := def.New(
+		herodot.Metadata("key\xff", "value\xff"),
+		herodot.Violation("field\xff", "description\xff"),
+		herodot.Cause(malformedCause{}),
+	)
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-request-id", "request\xff"))
+	s := grpcerr.ToStatus(ctx, e, true)
+	assert.Equal(t, codes.InvalidArgument, s.Code())
+	assert.Equal(t, "Message\uFFFD", s.Message())
+	assertDetails(t, s, []proto.Message{
+		&errdetails.ErrorInfo{Reason: "INVALID_INPUT", Domain: "ory.com", Metadata: map[string]string{"key\uFFFD": "value\uFFFD"}},
+		&errdetails.RequestInfo{RequestId: "request\uFFFD"},
+		&errdetails.BadRequest{FieldViolations: []*errdetails.BadRequest_FieldViolation{{Field: "field\uFFFD", Description: "description\uFFFD"}}},
+		&errdetails.DebugInfo{Detail: "cause\uFFFD", StackEntries: []string{"frame\uFFFD"}},
+	})
+	_, err := proto.Marshal(s.Proto())
+	require.NoError(t, err, "the complete status must be serializable")
+	assert.Equal(t, map[string]string{"key\xff": "value\xff"}, e.Metadata(), "rendering must not modify the error")
+}
