@@ -87,6 +87,9 @@ func generate(gen *protogen.Plugin, langs []string) error {
 			}
 			generateCodeTable(gen, f, codes)
 		case "go":
+			if err := cat.validateGoNames(); err != nil {
+				return err
+			}
 			for _, fc := range cat.files {
 				generateGo(gen, fc)
 			}

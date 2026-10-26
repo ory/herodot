@@ -241,3 +241,35 @@ func TestCodeValidation(t *testing.T) {
 	table.entries = append(table.entries, entry("REMOVED", 102, 410, notFound))
 	assert.ErrorContains(t, table.validateUnique(), "codes GONE and REMOVED both map to NOT_FOUND and HTTP status 410")
 }
+
+func TestGoNameCollisions(t *testing.T) {
+	for _, tc := range []struct{ name, first, second, domain string }{
+		{"normalized names", "FOO_1", "FOO1", "a.com"},
+		{"different domains", "FOO", "FOO", "b.com"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			value := func(name string) string {
+				return name + ` = 1 [(ory.herodot.v1.value).reason = {code: NOT_FOUND, message: "Message."}];`
+			}
+			a := catalog("a", "a.com", value(tc.first))
+			b := catalog("b", tc.domain, value(tc.second))
+			sources := map[string]string{
+				"a.proto": a,
+				"b.proto": strings.Replace(b, "example.com/b", "example.com/a", 1),
+			}
+			files := compile(t, sources, "a.proto", "b.proto")
+			_, err := run(t, "", false, files...)
+			require.Error(t, err)
+			assert.ErrorContains(t, err, "Go identifier")
+			assert.ErrorContains(t, err, "a."+tc.first)
+			assert.ErrorContains(t, err, "b."+tc.second)
+
+			_, err = run(t, "lang=json", false, files...)
+			require.NoError(t, err, "Go names must not constrain other outputs")
+
+			sources["b.proto"] = b
+			_, err = run(t, "", false, compile(t, sources, "a.proto", "b.proto")...)
+			require.NoError(t, err, "separate Go packages may reuse identifiers")
+		})
+	}
+}

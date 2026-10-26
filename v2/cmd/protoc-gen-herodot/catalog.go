@@ -228,3 +228,25 @@ func plainComment(s string) string {
 	}
 	return strings.TrimSpace(strings.Join(lines, "\n"))
 }
+
+// validateGoNames checks the package scope shared by all generated Go files.
+func (cat *catalogs) validateGoNames() error {
+	type key struct {
+		pkg  protogen.GoImportPath
+		name string
+	}
+	seen := map[key]*reason{}
+	for _, f := range cat.files {
+		for _, e := range f.enums {
+			for _, r := range e.reasons {
+				k := key{f.file.GoImportPath, r.goName()}
+				if other, ok := seen[k]; ok {
+					return fmt.Errorf("Go identifier %s in package %s collides between %s and %s",
+						k.name, k.pkg, other.value.Desc.FullName(), r.value.Desc.FullName())
+				}
+				seen[k] = r
+			}
+		}
+	}
+	return nil
+}
