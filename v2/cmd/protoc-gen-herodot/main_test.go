@@ -273,3 +273,20 @@ func TestGoNameCollisions(t *testing.T) {
 		})
 	}
 }
+
+func TestReasonRequiresCatalogDomain(t *testing.T) {
+	const value = `X = 1 [(ory.herodot.v1.value).reason = {code: NOT_FOUND, message: "Message."}];`
+	empty := catalog("a", "", value)
+	missing := strings.Replace(empty, `option (ory.herodot.v1.catalog).domain = "";`, "", 1)
+	for _, source := range []string{empty, missing} {
+		_, err := run(t, "", false, compile(t, map[string]string{"a.proto": source}, "a.proto")...)
+		require.Error(t, err)
+		assert.ErrorContains(t, err, "a.proto: a.X")
+		assert.ErrorContains(t, err, "requires a catalog domain on enum a.Reason")
+	}
+
+	ordinary := strings.Replace(missing, value, "X = 1;", 1)
+	out, err := run(t, "", false, compile(t, map[string]string{"a.proto": ordinary}, "a.proto")...)
+	require.NoError(t, err)
+	assert.Empty(t, out, "ordinary enums without annotations are ignored")
+}

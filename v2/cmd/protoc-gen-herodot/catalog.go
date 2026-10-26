@@ -79,6 +79,13 @@ func loadCatalogs(gen *protogen.Plugin, codes *codeTable) (*catalogs, error) {
 			co, _ := proto.GetExtension(e.Desc.Options(), herodotpb.E_Catalog).(*herodotpb.CatalogOptions)
 			dn := co.GetDomain()
 			if dn == "" {
+				for _, v := range e.Values {
+					vo, _ := proto.GetExtension(v.Desc.Options(), herodotpb.E_Value).(*herodotpb.ValueOptions)
+					if vo.GetReason() != nil {
+						return nil, fmt.Errorf("%s: %s: reason annotation requires a catalog domain on enum %s",
+							f.Desc.Path(), v.Desc.FullName(), e.Desc.FullName())
+					}
+				}
 				continue
 			}
 			if !domainPattern.MatchString(dn) || len(dn) > 253 {
