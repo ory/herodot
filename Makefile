@@ -1,6 +1,6 @@
 format: .bin/ory node_modules
 	.bin/ory dev headers copyright --type=open-source --exclude=httputil --exclude=v2/cmd/protoc-gen-herodot/testdata
-	go tool goimports -w -local github.com/ory *.go . httputil $(shell find v2 -name "*.go" -not -name "*.pb.go")
+	go tool goimports -w -local github.com/ory $(shell find . -name .git -prune -o -name node_modules -prune -o -name vendor -prune -o -name "*.go" -not -name "*.pb.go" -print)
 	npm exec -- prettier --write .
 
 BUF = GOWORK=off go tool -modfile=tools/go.mod buf
