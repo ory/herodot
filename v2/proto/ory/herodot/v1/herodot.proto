@@ -1,0 +1,202 @@
+// Copyright © 2026 Ory Corp
+// SPDX-License-Identifier: Apache-2.0
+
+syntax = "proto3";
+
+package ory.herodot.v1;
+
+import "google/protobuf/descriptor.proto";
+import "google/rpc/code.proto";
+
+option go_package = "github.com/ory/herodot/v2/internal/herodotpb;herodotpb";
+
+// Herodot's custom options use a single extension number on each options
+// message they extend, so that one number from the protobuf global extension
+// registry covers all of them.
+//
+// TODO: Replace the placeholder 50000 with the number assigned by
+// https://github.com/protocolbuffers/protobuf/blob/main/docs/options.md.
+
+extend google.protobuf.EnumOptions {
+  // Marks an enum as an error catalog.
+  CatalogOptions catalog = 50000;
+}
+
+extend google.protobuf.EnumValueOptions {
+  // Annotates a reason of an error catalog, or a value of the Code enum.
+  ValueOptions value = 50000;
+}
+
+// CatalogOptions annotate an error catalog: an enum whose values, except the
+// zero value, are reasons. The value name is used verbatim as the reason.
+//
+//   enum FlowReason {
+//     option (ory.herodot.v1.catalog).domain = "kratos.ory.com";
+//
+//     FLOW_REASON_UNSPECIFIED = 0;
+//     FLOW_EXPIRED = 1 [(ory.herodot.v1.value).reason = {
+//       code: EXPIRED
+//       message: "The self-service flow has expired."
+//       metadata_keys: ["flowId"]
+//     }];
+//   }
+message CatalogOptions {
+  // The domain of all reasons in the enum, e.g. "kratos.ory.com".
+  string domain = 1;
+}
+
+// ValueOptions annotate an enum value.
+message ValueOptions {
+  // Set on every reason of an error catalog.
+  ErrorSpec reason = 1;
+  // Set on every value of the Code enum, except CODE_UNSPECIFIED.
+  CodeMapping code = 2;
+}
+
+// ErrorSpec describes one reason of an error catalog.
+message ErrorSpec {
+  // The code of the reason. Required, never CODE_UNSPECIFIED.
+  Code code = 1;
+  // The developer-facing message, the same for every occurrence. Required.
+  // One or more full English sentences on one line, each ending with a
+  // period, e.g. "The self-service flow has expired. Start a new flow."
+  // Values that vary go into metadata, explanations into the comment.
+  string message = 2;
+  // The documented ErrorInfo.metadata keys, in lowerCamelCase.
+  repeated string metadata_keys = 3;
+}
+
+// CodeInfo is a google.rpc.Status detail that carries a refined Code over
+// gRPC, where the status only has room for the canonical code. It lets a
+// receiver forward the error with the original HTTP status. Senders attach it
+// only for refinements. HTTP responses don't need it: the canonical code and
+// the HTTP status in the body determine the Code.
+message CodeInfo {
+  Code code = 1;
+}
+
+// CodeMapping fixes how a Code is represented on each transport.
+//
+// A future transport adds a field here. It never adds per-reason
+// configuration.
+message CodeMapping {
+  // The canonical code that gRPC and the AIP-193 "status" field use.
+  google.rpc.Code canonical = 1;
+  // The HTTP status code.
+  uint32 http_status = 2;
+}
+
+// Code classifies an error independently of the transport.
+//
+// The table is closed: services can't add codes. Values are never renumbered
+// or reused, and a mapping never changes once released.
+//
+// Canonical codes are numbered as in google.rpc.Code. Refinements are numbered
+// from 100, named by meaning (never by HTTP status), and map to exactly one
+// canonical code and exactly one HTTP status.
+enum Code {
+  CODE_UNSPECIFIED = 0;
+
+  // Canonical codes. Values equal google.rpc.Code.
+  CANCELLED = 1 [(value).code = {
+    canonical: CANCELLED
+    http_status: 499
+  }];
+  UNKNOWN = 2 [(value).code = {
+    canonical: UNKNOWN
+    http_status: 500
+  }];
+  INVALID_ARGUMENT = 3 [(value).code = {
+    canonical: INVALID_ARGUMENT
+    http_status: 400
+  }];
+  DEADLINE_EXCEEDED = 4 [(value).code = {
+    canonical: DEADLINE_EXCEEDED
+    http_status: 504
+  }];
+  NOT_FOUND = 5 [(value).code = {
+    canonical: NOT_FOUND
+    http_status: 404
+  }];
+  ALREADY_EXISTS = 6 [(value).code = {
+    canonical: ALREADY_EXISTS
+    http_status: 409
+  }];
+  PERMISSION_DENIED = 7 [(value).code = {
+    canonical: PERMISSION_DENIED
+    http_status: 403
+  }];
+  RESOURCE_EXHAUSTED = 8 [(value).code = {
+    canonical: RESOURCE_EXHAUSTED
+    http_status: 429
+  }];
+  FAILED_PRECONDITION = 9 [(value).code = {
+    canonical: FAILED_PRECONDITION
+    http_status: 400
+  }];
+  ABORTED = 10 [(value).code = {
+    canonical: ABORTED
+    http_status: 409
+  }];
+  OUT_OF_RANGE = 11 [(value).code = {
+    canonical: OUT_OF_RANGE
+    http_status: 400
+  }];
+  UNIMPLEMENTED = 12 [(value).code = {
+    canonical: UNIMPLEMENTED
+    http_status: 501
+  }];
+  INTERNAL = 13 [(value).code = {
+    canonical: INTERNAL
+    http_status: 500
+  }];
+  UNAVAILABLE = 14 [(value).code = {
+    canonical: UNAVAILABLE
+    http_status: 503
+  }];
+  DATA_LOSS = 15 [(value).code = {
+    canonical: DATA_LOSS
+    http_status: 500
+  }];
+  UNAUTHENTICATED = 16 [(value).code = {
+    canonical: UNAUTHENTICATED
+    http_status: 401
+  }];
+
+  // Refinements. Named by meaning, never by HTTP status.
+
+  // The resource exists but is no longer valid, e.g. an expired flow.
+  EXPIRED = 100 [(value).code = {
+    canonical: FAILED_PRECONDITION
+    http_status: 410
+  }];
+  // The resource existed but was removed permanently.
+  GONE = 101 [(value).code = {
+    canonical: NOT_FOUND
+    http_status: 410
+  }];
+  // The request body has a media type the endpoint doesn't accept.
+  UNSUPPORTED_MEDIA_TYPE = 102 [(value).code = {
+    canonical: INVALID_ARGUMENT
+    http_status: 415
+  }];
+  // The request is well-formed but can't be processed in the current state.
+  UNPROCESSABLE = 103 [(value).code = {
+    canonical: FAILED_PRECONDITION
+    http_status: 422
+  }];
+  // The request body exceeds the size limit.
+  PAYLOAD_TOO_LARGE = 104 [(value).code = {
+    canonical: RESOURCE_EXHAUSTED
+    http_status: 413
+  }];
+  // 105 is held back for METHOD_NOT_ALLOWED (HTTP 405). Its candidate parent
+  // UNIMPLEMENTED maps to 501, which violates the rule that a refinement keeps
+  // the status class of its canonical code.
+  reserved 105;
+  // An upstream service returned an invalid response.
+  BAD_GATEWAY = 106 [(value).code = {
+    canonical: UNAVAILABLE
+    http_status: 502
+  }];
+}

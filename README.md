@@ -25,6 +25,21 @@ Herodot is versioned using
 go get -u github.com/ory/herodot
 ```
 
+## herodot/v2
+
+The [`v2`](v2) directory contains the module `github.com/ory/herodot/v2`. It
+identifies errors by a domain and a reason from a proto catalog and renders them
+in the [AIP-193](https://google.aip.dev/193) shape. This module bridges to it:
+
+- `herodot.Legacy(outer, inner)` wraps a v2 error in the `DefaultError` that was
+  returned before, so that legacy responses stay byte-equal during the
+  migration.
+- `DefaultError` implements `herodotv2.Classifier`, so `herodotv2.From`
+  classifies it under the `legacy.ory.com` domain.
+- `JSONWriter` renders v2 errors that aren't wrapped in a `DefaultError` in the
+  legacy shape, and `JSONWriter.Recorder` and the `Recording*Interceptor`
+  functions record each error response with its AIP shadow rendering.
+
 ## Upgrading
 
 Tips on upgrading can be found in [UPGRADE.md](UPGRADE.md)

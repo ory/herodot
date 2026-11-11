@@ -1,2 +1,3 @@
 .github/pull_request_template.md
 CONTRIBUTING.md
+v2/cmd/protoc-gen-herodot/testdata/

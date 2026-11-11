@@ -1,0 +1,11 @@
+{
+  "description": "The values of ErrorInfo.reason when ErrorInfo.domain is \"kratos.ory.com\".",
+  "enum": [
+    "FLOW_EXPIRED",
+    "BROWSER_LOCATION_CHANGE_REQUIRED",
+    "OLD_FLOW_ERROR",
+    "IDENTITY_NOT_FOUND"
+  ],
+  "title": "Reasons of kratos.ory.com",
+  "type": "string"
+}

@@ -1,0 +1,22 @@
+// Copyright © 2026 Ory Corp
+// SPDX-License-Identifier: Apache-2.0
+
+syntax = "proto3";
+
+package ory.kratos.errors.v1;
+
+import "ory/herodot/v1/herodot.proto";
+
+option go_package = "github.com/ory/kratos/errors/v1;kratoserr";
+
+enum IdentityReason {
+  option (ory.herodot.v1.catalog).domain = "kratos.ory.com";
+
+  IDENTITY_REASON_UNSPECIFIED = 0;
+
+  IDENTITY_NOT_FOUND = 1 [(ory.herodot.v1.value).reason = {
+    code: NOT_FOUND
+    message: "The identity could not be found."
+    metadata_keys: ["identityId"]
+  }];
+}

@@ -1,0 +1,15 @@
+version: v2
+modules:
+  - path: proto
+deps:
+  - buf.build/googleapis/googleapis
+lint:
+  use:
+    - STANDARD
+  except:
+    # Codes and reasons follow google.rpc.Code and google.api.ErrorReason,
+    # which don't prefix their values with the enum name.
+    - ENUM_VALUE_PREFIX
+breaking:
+  use:
+    - WIRE_JSON

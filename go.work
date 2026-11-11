@@ -1,0 +1,10 @@
+go 1.26.0
+
+use (
+	.
+	./v2
+)
+
+// The root module requires v2.0.0, which is only tagged on release. Until
+// then, resolve it from the workspace.
+replace github.com/ory/herodot/v2 v2.0.0 => ./v2
