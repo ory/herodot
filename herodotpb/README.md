@@ -19,7 +19,10 @@ check the protobuf module independently.
 
 ## Releases
 
-Publish this module with tags such as `herodotpb/v1.0.0`.
+Run the [Release protobuf module](../.github/workflows/release-herodotpb.yml)
+workflow with a stable version such as `v1.0.0`. It checks the module, generated
+code, and runtime integration, then tags the checked-out master commit as
+`herodotpb/v1.0.0`. It uses `GITHUB_TOKEN` with `contents: write`.
 
 Release the version required by `v2/go.mod` before releasing the runtime. The
 first release is `herodotpb/v1.0.0`; local development resolves it through
