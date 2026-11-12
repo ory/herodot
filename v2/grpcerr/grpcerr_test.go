@@ -20,7 +20,7 @@ import (
 
 	"github.com/ory/herodot/v2"
 	"github.com/ory/herodot/v2/grpcerr"
-	"github.com/ory/herodot/v2/internal/herodotpb"
+	"github.com/ory/herodot/v2/herodotpb"
 )
 
 var flowExpired = herodot.Define("kratos.ory.com", "FLOW_EXPIRED", herodot.CodeExpired, "The self-service flow has expired.")

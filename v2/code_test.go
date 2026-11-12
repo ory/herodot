@@ -12,7 +12,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
-	"github.com/ory/herodot/v2/internal/herodotpb"
+	"github.com/ory/herodot/v2/herodotpb"
 )
 
 func TestCodeTable(t *testing.T) {

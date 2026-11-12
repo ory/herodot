@@ -9,7 +9,7 @@ import (
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/ory/herodot/v2/internal/herodotpb"
+	"github.com/ory/herodot/v2/herodotpb"
 )
 
 const codeProtoPath = "ory/herodot/v1/herodot.proto"
@@ -31,38 +31,31 @@ type codeTable struct {
 	byNumber map[int32]*codeEntry
 }
 
-// loadCodeTable reads the code table from the herodot.proto in the request,
-// which every catalog imports, and validates it.
+// loadCodeTable validates the imported code table, using the bundled descriptor for option-only imports.
 func loadCodeTable(gen *protogen.Plugin) (*codeTable, error) {
-	f, ok := gen.FilesByPath[codeProtoPath]
-	if !ok {
-		// No catalog in the request.
-		return &codeTable{byNumber: map[int32]*codeEntry{}}, nil
+	file := herodotpb.File_ory_herodot_v1_herodot_proto
+	if f, ok := gen.FilesByPath[codeProtoPath]; ok {
+		file = f.Desc
 	}
-
-	var enum *protogen.Enum
-	for _, e := range f.Enums {
-		if e.Desc.Name() == "Code" {
-			enum = e
-		}
-	}
+	enum := file.Enums().ByName("Code")
 	if enum == nil {
 		return nil, fmt.Errorf("%s: enum Code not found", codeProtoPath)
 	}
 
 	t := &codeTable{byNumber: map[int32]*codeEntry{}}
 	canonical := map[int32]int32{}
-	for _, v := range enum.Values {
-		n := int32(v.Desc.Number())
+	for i := range enum.Values().Len() {
+		v := enum.Values().Get(i)
+		n := int32(v.Number())
 		if n == 0 {
 			continue
 		}
-		vo, _ := proto.GetExtension(v.Desc.Options(), herodotpb.E_Value).(*herodotpb.ValueOptions)
+		vo, _ := proto.GetExtension(v.Options(), herodotpb.E_Value).(*herodotpb.ValueOptions)
 		m := vo.GetCode()
 		if m == nil {
-			return nil, fmt.Errorf("%s: code %s has no mapping", codeProtoPath, v.Desc.Name())
+			return nil, fmt.Errorf("%s: code %s has no mapping", codeProtoPath, v.Name())
 		}
-		e := &codeEntry{name: string(v.Desc.Name()), number: n, httpStatus: m.GetHttpStatus(), comment: v.Comments.Leading}
+		e := &codeEntry{name: string(v.Name()), number: n, httpStatus: m.GetHttpStatus(), comment: protogen.Comments(file.SourceLocations().ByDescriptor(v).LeadingComments)}
 		t.entries = append(t.entries, e)
 		t.byNumber[n] = e
 		canonical[n] = int32(m.GetCanonical())
