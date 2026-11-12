@@ -19,6 +19,11 @@ jobs:
         with:
           go-version: "1.26"
       - run: go test -coverprofile=coverage.out -timeout=1m ./... ./v2/...
+      - name: Check release tools
+        working-directory: tools
+        run: |
+          GOWORK=off go mod tidy -diff
+          GOWORK=off go test ./...
       - run: go tool gcov2lcov -infile=coverage.out -outfile=coverage.lcov
       - name: Coveralls
         uses: coverallsapp/github-action@master

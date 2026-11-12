@@ -33,8 +33,7 @@ jobs:
           token: ${{ secrets.ORY_BOT_PAT || github.token }}
       - uses: actions/setup-go@v5
         with:
-          # The release helpers in v2/tools need the newest Go of all modules.
-          go-version-file: v2/tools/go.mod
+          go-version-file: tools/go.mod
       - run: go test -timeout=5m ./... ./v2/...
       - name: Release
         env:
