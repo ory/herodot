@@ -38,6 +38,7 @@ import (
 	"slices"
 
 	"google.golang.org/protobuf/compiler/protogen"
+	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/pluginpb"
 )
 
@@ -60,7 +61,6 @@ func main() {
 	})
 
 	protogen.Options{ParamFunc: flags.Set}.Run(func(gen *protogen.Plugin) error {
-		gen.SupportedFeatures = uint64(pluginpb.CodeGeneratorResponse_FEATURE_PROTO3_OPTIONAL)
 		if len(langs) == 0 {
 			langs = []string{"go"}
 		}
@@ -69,6 +69,10 @@ func main() {
 }
 
 func generate(gen *protogen.Plugin, langs []string) error {
+	gen.SupportedFeatures = uint64(pluginpb.CodeGeneratorResponse_FEATURE_PROTO3_OPTIONAL | pluginpb.CodeGeneratorResponse_FEATURE_SUPPORTS_EDITIONS)
+	gen.SupportedEditionsMinimum = descriptorpb.Edition_EDITION_2023
+	gen.SupportedEditionsMaximum = descriptorpb.Edition_EDITION_2024
+
 	codes, err := loadCodeTable(gen)
 	if err != nil {
 		return err

@@ -14,7 +14,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/descriptorpb"
 
-	"github.com/ory/herodot/v2/internal/herodotpb"
+	"github.com/ory/herodot/v2/herodotpb"
 )
 
 // These mirror the validation in package herodot, so that Define never panics

@@ -23,7 +23,7 @@ import (
 	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/pluginpb"
 
-	"github.com/ory/herodot/v2/internal/herodotpb"
+	"github.com/ory/herodot/v2/herodotpb"
 )
 
 var update = flag.Bool("update", false, "update golden files")
@@ -289,4 +289,40 @@ func TestReasonRequiresCatalogDomain(t *testing.T) {
 	out, err := run(t, "", false, compile(t, map[string]string{"a.proto": ordinary}, "a.proto")...)
 	require.NoError(t, err)
 	assert.Empty(t, out, "ordinary enums without annotations are ignored")
+}
+
+func TestSupportedEditions(t *testing.T) {
+	t.Parallel()
+	gen, err := protogen.Options{}.New(&pluginpb.CodeGeneratorRequest{
+		ProtoFile: []*descriptorpb.FileDescriptorProto{
+			protodesc.ToFileDescriptorProto(descriptorpb.File_google_protobuf_descriptor_proto),
+			protodesc.ToFileDescriptorProto(code.File_google_rpc_code_proto),
+			protodesc.ToFileDescriptorProto(herodotpb.File_ory_herodot_v1_herodot_proto),
+		},
+	})
+	require.NoError(t, err)
+	require.NoError(t, generate(gen, []string{"go"}))
+	response := gen.Response()
+	assert.NotZero(t, response.GetSupportedFeatures()&uint64(pluginpb.CodeGeneratorResponse_FEATURE_SUPPORTS_EDITIONS))
+	assert.EqualValues(t, descriptorpb.Edition_EDITION_2023, response.GetMinimumEdition())
+	assert.EqualValues(t, descriptorpb.Edition_EDITION_2024, response.GetMaximumEdition())
+}
+
+func TestOptionImport(t *testing.T) {
+	source := catalog("keto", "keto.ory.com", `NAMESPACE_NOT_FOUND = 1 [(ory.herodot.v1.value).reason = {code: NOT_FOUND, message: "The namespace does not exist."}];`)
+	file := compile(t, map[string]string{"catalog.proto": source}, "catalog.proto")[0]
+	file.Syntax = new("editions")
+	file.Edition = new(descriptorpb.Edition_EDITION_2024)
+	file.Dependency = nil
+	file.OptionDependency = []string{codeProtoPath}
+	gen, err := protogen.Options{}.New(&pluginpb.CodeGeneratorRequest{
+		ProtoFile:      []*descriptorpb.FileDescriptorProto{file},
+		FileToGenerate: []string{file.GetName()},
+	})
+	require.NoError(t, err)
+	require.NoError(t, generate(gen, []string{"go"}))
+	response := gen.Response()
+	require.Empty(t, response.GetError())
+	require.Len(t, response.File, 1)
+	assert.Contains(t, response.File[0].GetContent(), `herodot.Define("keto.ory.com", "NAMESPACE_NOT_FOUND", herodot.CodeNotFound`)
 }

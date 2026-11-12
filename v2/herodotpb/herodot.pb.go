@@ -519,7 +519,7 @@ const file_ory_herodot_v1_herodot_proto_rawDesc = "" +
 	"\x11PAYLOAD_TOO_LARGE\x10h\x1a\v\x82\xb5\x18\a\x12\x05\b\b\x10\x9d\x03\x12\x1c\n" +
 	"\vBAD_GATEWAY\x10j\x1a\v\x82\xb5\x18\a\x12\x05\b\x0e\x10\xf6\x03\"\x04\bi\x10i:X\n" +
 	"\acatalog\x12\x1c.google.protobuf.EnumOptions\x18І\x03 \x01(\v2\x1e.ory.herodot.v1.CatalogOptionsR\acatalog:W\n" +
-	"\x05value\x12!.google.protobuf.EnumValueOptions\x18І\x03 \x01(\v2\x1c.ory.herodot.v1.ValueOptionsR\x05valueB8Z6github.com/ory/herodot/v2/internal/herodotpb;herodotpbb\x06proto3"
+	"\x05value\x12!.google.protobuf.EnumValueOptions\x18І\x03 \x01(\v2\x1c.ory.herodot.v1.ValueOptionsR\x05valueB/Z-github.com/ory/herodot/v2/herodotpb;herodotpbb\x06proto3"
 
 var (
 	file_ory_herodot_v1_herodot_proto_rawDescOnce sync.Once

@@ -50,5 +50,5 @@ jobs:
           fi
           baseline="$(mktemp -d)"
           trap 'rm -rf "$baseline"' EXIT
-          git archive "$BASE_SHA" v2 | tar -x -C "$baseline"
+          git -C .. archive "$BASE_SHA" v2 | tar -x -C "$baseline"
           GOWORK=off go tool -modfile=tools/go.mod buf breaking --against "$baseline/v2"
