@@ -55,8 +55,8 @@ trap 'rm -rf "$tmp"' EXIT
 expected=""
 if [[ -n "$v2" ]]; then
   echo "Computing $module $v2 from $(git rev-parse --short HEAD)."
-  (cd v2/tools && GOWORK=off go run ./cmd/modproxy \
-    -module "$module" -version "$v2" -repo ../.. -rev HEAD -subdir v2 -out "$tmp/proxy")
+  (cd tools && GOWORK=off go run ./cmd/modproxy \
+    -module "$module" -version "$v2" -repo .. -rev HEAD -subdir v2 -out "$tmp/proxy")
 
   # Serve the unreleased version from the local proxy. It isn't in the checksum
   # database yet, so skip the lookup for this module only. A fresh module cache

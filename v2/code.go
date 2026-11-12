@@ -5,7 +5,7 @@ package herodot
 
 import "strconv"
 
-//go:generate env GOWORK=off go tool -modfile=tools/go.mod buf generate
+//go:generate make -C .. gen
 
 // Code classifies an error independently of the transport. It is generated
 // from ory/herodot/v1/herodot.proto, and the set is closed.

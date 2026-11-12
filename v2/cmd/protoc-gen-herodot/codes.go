@@ -9,7 +9,7 @@ import (
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/ory/herodot/v2/herodotpb"
+	"github.com/ory/herodot/herodotpb"
 )
 
 const codeProtoPath = "ory/herodot/v1/herodot.proto"

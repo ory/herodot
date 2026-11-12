@@ -1,18 +1,10 @@
-// Tools for developing herodot/v2, kept out of the herodot/v2 module so that
-// their dependencies don't reach its consumers. Run them from v2/ with
-//
-//	GOWORK=off go tool -modfile=tools/go.mod buf
-//
-// and the release helpers from v2/tools with
-//
-//	GOWORK=off go run ./cmd/modproxy
-module github.com/ory/herodot/v2/tools
+module github.com/ory/herodot/herodotpb/tools
 
 go 1.26.7
 
 tool github.com/bufbuild/buf/cmd/buf
 
-require golang.org/x/mod v0.42.0
+require golang.org/x/mod v0.42.0 // indirect
 
 require (
 	buf.build/gen/go/bufbuild/bufplugin/protocolbuffers/go v1.36.12-20261002170247-538130002972.2 // indirect

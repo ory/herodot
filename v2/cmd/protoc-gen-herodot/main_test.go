@@ -23,7 +23,7 @@ import (
 	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/pluginpb"
 
-	"github.com/ory/herodot/v2/herodotpb"
+	"github.com/ory/herodot/herodotpb"
 )
 
 var update = flag.Bool("update", false, "update golden files")
@@ -74,7 +74,7 @@ func compile(t *testing.T, sources map[string]string, paths ...string) []*descri
 	c := protocompile.Compiler{
 		Resolver: protocompile.WithStandardImports(protocompile.CompositeResolver{
 			&protocompile.SourceResolver{Accessor: protocompile.SourceAccessorFromMap(sources)},
-			&protocompile.SourceResolver{ImportPaths: []string{"testdata", "../../proto"}},
+			&protocompile.SourceResolver{ImportPaths: []string{"testdata", "../../../herodotpb/proto"}},
 			protocompile.ResolverFunc(func(path string) (protocompile.SearchResult, error) {
 				fd, err := protoregistry.GlobalFiles.FindFileByPath(path)
 				return protocompile.SearchResult{Desc: fd}, err
