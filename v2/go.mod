@@ -2,10 +2,9 @@ module github.com/ory/herodot/v2
 
 go 1.26.0
 
-tool google.golang.org/protobuf/cmd/protoc-gen-go
-
 require (
 	github.com/bufbuild/protocompile v0.14.1
+	github.com/ory/herodot/herodotpb v1.0.0
 	github.com/stretchr/testify v1.12.1
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20261019180522-ce908d29299b
 	google.golang.org/grpc v1.84.0

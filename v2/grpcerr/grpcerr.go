@@ -16,8 +16,8 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/protoadapt"
 
+	"github.com/ory/herodot/herodotpb"
 	"github.com/ory/herodot/v2"
-	"github.com/ory/herodot/v2/herodotpb"
 )
 
 // RequestIDKey is the incoming metadata key that ToStatus reads the request

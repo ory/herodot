@@ -34,7 +34,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: tools/go.mod
-      - run: go test -timeout=5m ./... ./v2/...
+      - run: go test -timeout=5m ./... ./v2/... ./herodotpb/...
       - name: Release
         env:
           V2: ${{ inputs.v2 }}

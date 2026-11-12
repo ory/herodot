@@ -1,0 +1,8 @@
+version: v2
+plugins:
+  - local: ["go", "tool", "protoc-gen-go"]
+    out: .
+    opt: module=github.com/ory/herodot/herodotpb
+  - local: ["env", "GOWORK=", "go", "run", "../v2/cmd/protoc-gen-herodot"]
+    out: ../v2
+    opt: [module=github.com/ory/herodot/v2, lang=codetable]

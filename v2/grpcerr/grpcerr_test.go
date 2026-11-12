@@ -18,9 +18,9 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/ory/herodot/herodotpb"
 	"github.com/ory/herodot/v2"
 	"github.com/ory/herodot/v2/grpcerr"
-	"github.com/ory/herodot/v2/herodotpb"
 )
 
 var flowExpired = herodot.Define("kratos.ory.com", "FLOW_EXPIRED", herodot.CodeExpired, "The self-service flow has expired.")
@@ -191,4 +191,12 @@ func TestToStatusInvalidUTF8(t *testing.T) {
 	_, err := proto.Marshal(s.Proto())
 	require.NoError(t, err, "the complete status must be serializable")
 	assert.Equal(t, map[string]string{"key\xff": "value\xff"}, e.Metadata(), "rendering must not modify the error")
+}
+
+func TestCodeInfoTypeURL(t *testing.T) {
+	t.Parallel()
+	s := grpcerr.ToStatus(t.Context(), flowExpired.New(), false)
+	details := s.Proto().GetDetails()
+	require.Len(t, details, 2)
+	assert.Equal(t, "type.googleapis.com/ory.herodot.v1.CodeInfo", details[1].GetTypeUrl())
 }

@@ -9,10 +9,8 @@ finer-grained than AIP's code-to-HTTP mapping.
 | ------------------------ | ------------------------------------------------------------------- |
 | `herodot`                | `Code`, `Definition`, `Error`, `Annotate`, `From`. No transport.    |
 | `httperr`                | Renders errors as HTTP responses, by default in the AIP JSON shape. |
-| `herodotpb`              | Public protobuf types and annotation extensions.                    |
 | `grpcerr`                | Renders errors as gRPC statuses, and server interceptors.           |
 | `cmd/protoc-gen-herodot` | Generates Go, JSON, TypeScript, Markdown and OpenAPI from catalogs. |
-| `proto/ory/herodot/v1`   | The code table and catalog options (`herodot.proto`).               |
 
 ## Catalogs
 
@@ -99,10 +97,11 @@ code, so `grpcerr` adds an `ory.herodot.v1.CodeInfo` detail for refined codes.
 ## Development
 
 The code table is generated from `herodot.proto`. After changing a proto, run
-`make gen` in the repository root. It runs buf as a Go tool from `tools/go.mod`,
-a separate module that keeps buf's dependencies out of herodot/v2. A `go.work`
-file in the repository root links this module and the herodot v1 module, which
-depends on it.
+`make gen` in the repository root. It runs buf as a Go tool from
+`herodotpb/tools/go.mod`, a separate module that keeps buf's dependencies out of
+herodot/v2. The schema and generated protobuf types live in the independent
+[herodotpb module](../herodotpb). The repository's `go.work` links all three
+modules for local development.
 
 ## Releasing
 

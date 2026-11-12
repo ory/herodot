@@ -8,7 +8,7 @@ package ory.herodot.v1;
 import "google/protobuf/descriptor.proto";
 import "google/rpc/code.proto";
 
-option go_package = "github.com/ory/herodot/v2/herodotpb;herodotpb";
+option go_package = "github.com/ory/herodot/herodotpb;herodotpb";
 
 // Herodot's custom options use a single extension number on each options
 // message they extend, so that one number from the protobuf global extension

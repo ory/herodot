@@ -5,8 +5,8 @@ format: .bin/ory node_modules
 
 BUF = GOWORK=off go tool -modfile=tools/go.mod buf
 
-gen:  # regenerates herodot/v2 from its protos
-	cd v2 && $(BUF) lint && $(BUF) generate
+gen:
+	cd herodotpb && $(BUF) lint && $(BUF) generate
 
 licenses: .bin/licenses node_modules  # checks open-source licenses
 	.bin/licenses

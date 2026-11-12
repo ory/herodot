@@ -18,7 +18,14 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: "1.26"
-      - run: go test -coverprofile=coverage.out -timeout=1m ./... ./v2/...
+      - run:
+          go test -coverprofile=coverage.out -timeout=1m ./... ./v2/...
+          ./herodotpb/...
+      - name: Check standalone protobuf module
+        working-directory: herodotpb
+        run: |
+          GOWORK=off go mod tidy -diff
+          GOWORK=off go test ./...
       - name: Check release tools
         working-directory: tools
         run: |
@@ -38,22 +45,22 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          # buf, run from v2/tools/go.mod, requires a newer Go than herodot.
-          go-version-file: v2/tools/go.mod
+          # buf, run from herodotpb/tools/go.mod, requires a newer Go than herodot.
+          go-version-file: herodotpb/tools/go.mod
       - run: make gen
       - run: git diff --exit-code
       - name: Breaking changes in the code table and catalog options
         if: github.event_name == 'pull_request'
-        working-directory: v2
+        working-directory: herodotpb
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           git fetch --depth=1 origin "$BASE_SHA"
-          if ! git cat-file -e "${BASE_SHA}:v2/buf.yaml" 2>/dev/null; then
-            echo "The base commit has no v2 Buf module; skipping the initial breaking check."
+          if ! git cat-file -e "${BASE_SHA}:herodotpb/buf.yaml" 2>/dev/null; then
+            echo "The base commit has no herodotpb Buf module; skipping the initial breaking check."
             exit 0
           fi
           baseline="$(mktemp -d)"
           trap 'rm -rf "$baseline"' EXIT
-          git -C .. archive "$BASE_SHA" v2 | tar -x -C "$baseline"
-          GOWORK=off go tool -modfile=tools/go.mod buf breaking --against "$baseline/v2"
+          git -C .. archive "$BASE_SHA" herodotpb | tar -x -C "$baseline"
+          GOWORK=off go tool -modfile=tools/go.mod buf breaking --against "$baseline/herodotpb"

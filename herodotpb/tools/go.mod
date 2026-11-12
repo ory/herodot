@@ -1,4 +1,4 @@
-module github.com/ory/herodot/v2/tools
+module github.com/ory/herodot/herodotpb/tools
 
 go 1.26.7
 
