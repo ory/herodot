@@ -6,7 +6,7 @@ follows [AIP-193](https://google.aip.dev/193), but HTTP statuses are
 finer-grained than AIP's code-to-HTTP mapping.
 
 | Package                  | Purpose                                                             |
-|--------------------------|---------------------------------------------------------------------|
+| ------------------------ | ------------------------------------------------------------------- |
 | `herodot`                | `Code`, `Definition`, `Error`, `Annotate`, `From`. No transport.    |
 | `httperr`                | Renders errors as HTTP responses, by default in the AIP JSON shape. |
 | `herodotpb`              | Public protobuf types and annotation extensions.                    |
