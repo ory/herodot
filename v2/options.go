@@ -42,9 +42,8 @@ func Cause(err error) Option {
 	return optionFunc(func(d *errorData) { d.cause = err })
 }
 
-// Metadata adds an ErrorInfo metadata entry. Keys are lowerCamelCase and
-// documented in the catalog. A later entry with the same key replaces an
-// earlier one.
+// Metadata adds an ErrorInfo metadata entry. Keys are documented in the catalog.
+// A later entry with the same key replaces the earlier one.
 func Metadata(key, value string) Detail {
 	return metadataDetail{key: key, value: value}
 }
