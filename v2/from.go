@@ -125,9 +125,10 @@ func merge(e Error, path []*annotation) Error {
 	}
 	src := e.d()
 	data := &errorData{
-		def:        src.def,
-		cause:      src.cause,
-		violations: slices.Clone(src.violations),
+		def:          src.def,
+		cause:        src.cause,
+		violations:   slices.Clone(src.violations),
+		protoDetails: e.ProtoDetails(),
 	}
 	if len(src.metadata) > 0 {
 		data.metadata = make(map[string]string, len(src.metadata))

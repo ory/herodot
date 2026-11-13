@@ -8,6 +8,10 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/anypb"
+
 	"github.com/ory/herodot/v2"
 )
 
@@ -126,6 +130,23 @@ func NewBody(e herodot.Error, o Options) Body {
 		}
 		details = append(details, br)
 	}
+	for _, detail := range e.ProtoDetails() {
+		if detail.ProtoReflect().Descriptor().FullName() == "google.rpc.DebugInfo" && !o.Debug {
+			continue
+		}
+		if _, ok := detail.(*errdetails.RequestInfo); ok && o.RequestID != "" {
+			continue
+		}
+		packed, err := anypb.New(detail)
+		if err != nil {
+			continue
+		}
+		raw, err := protojson.Marshal(packed)
+		if err != nil {
+			continue
+		}
+		details = append(details, json.RawMessage(raw))
+	}
 	if o.Debug {
 		if info, ok := e.DebugInfo(); ok {
 			details = append(details, DebugInfo{Type: typePrefix + "DebugInfo", StackEntries: info.StackEntries, Detail: info.Detail})
@@ -142,8 +163,7 @@ func NewBody(e herodot.Error, o Options) Body {
 func renderAIP(w http.ResponseWriter, _ *http.Request, e herodot.Error, o Options) {
 	b, err := json.Marshal(NewBody(e, o))
 	if err != nil {
-		// Only strings and slices of strings are encoded, so this can't
-		// happen.
+		// Details have already been encoded as valid JSON.
 		panic(err)
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")

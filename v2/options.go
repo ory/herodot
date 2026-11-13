@@ -3,6 +3,8 @@
 
 package herodot
 
+import "google.golang.org/protobuf/proto"
+
 // Option configures an Error in Definition.New.
 type Option interface {
 	apply(*errorData)
@@ -51,4 +53,26 @@ func Metadata(key, value string) Detail {
 // Violation adds a request field violation.
 func Violation(field, description string) Detail {
 	return violationDetail{Field: field, Description: description}
+}
+
+type protoDetail struct{ message proto.Message }
+
+func (p protoDetail) apply(d *errorData) {
+	d.protoDetails = append(d.protoDetails, proto.Clone(p.message))
+}
+func (protoDetail) detail() {}
+
+// ProtoDetail adds a protobuf detail and copies its message. It panics for nil
+// messages or the identity and code types managed by Herodot: ErrorInfo and CodeInfo.
+// DebugInfo is rendered only when debug output is enabled. All other details
+// are public response data and must not contain internal diagnostics.
+func ProtoDetail(message proto.Message) Detail {
+	if message == nil || !message.ProtoReflect().IsValid() {
+		panic("herodot: nil protobuf detail")
+	}
+	switch message.ProtoReflect().Descriptor().FullName() {
+	case "google.rpc.ErrorInfo", "ory.herodot.v1.CodeInfo":
+		panic("herodot: protobuf detail type is managed by Herodot")
+	}
+	return protoDetail{message: proto.Clone(message)}
 }

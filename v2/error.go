@@ -9,6 +9,8 @@ import (
 	"maps"
 	"slices"
 	"sort"
+
+	"google.golang.org/protobuf/proto"
 )
 
 // Error is an occurrence of a Definition. It is immutable: its only field
@@ -20,10 +22,11 @@ type Error struct {
 }
 
 type errorData struct {
-	def        Definition
-	metadata   map[string]string
-	violations []FieldViolation
-	cause      error
+	def          Definition
+	metadata     map[string]string
+	violations   []FieldViolation
+	cause        error
+	protoDetails []proto.Message
 }
 
 // FieldViolation describes a request field error. It maps to
@@ -51,6 +54,18 @@ func (e Error) Metadata() map[string]string { return maps.Clone(e.d().metadata) 
 
 // Violations returns a copy of the request field violations.
 func (e Error) Violations() []FieldViolation { return slices.Clone(e.d().violations) }
+
+// ProtoDetails returns deep copies of the additional protobuf details.
+func (e Error) ProtoDetails() []proto.Message {
+	if e.d().protoDetails == nil {
+		return nil
+	}
+	details := make([]proto.Message, len(e.d().protoDetails))
+	for i, d := range e.d().protoDetails {
+		details[i] = proto.Clone(d)
+	}
+	return details
+}
 
 // Unwrap returns the cause.
 func (e Error) Unwrap() error { return e.d().cause }

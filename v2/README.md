@@ -116,3 +116,35 @@ version, a herodot v1 version, or both. It runs `scripts/release.sh`, which:
 Every herodot/v2 release bumps the root module. A herodot v1 release requires
 the root module to require the latest herodot/v2 release. Run
 `scripts/release.sh` without `--push` for a local dry run.
+
+### Protobuf error details
+
+Attach standard or service-specific protobuf messages with `ProtoDetail`:
+
+```go
+err := serviceUnavailable.New(
+    herodot.ProtoDetail(&errdetails.RetryInfo{
+        RetryDelay: durationpb.New(time.Second),
+    }),
+)
+```
+
+`ProtoDetail` also works with `Annotate`. Messages are copied when attached;
+`Error.ProtoDetails()` returns deep copies. Except for `DebugInfo`, these details
+are public response data. Use `Cause` for internal diagnostics and `Violation` for invalid fields. Attached `DebugInfo`
+is rendered only when debug output is enabled, just like cause-derived debug
+information. `BadRequest` can also be attached directly. Only `ErrorInfo` and
+Herodot's `CodeInfo` are reserved because they define the error's identity and
+code; passing either or a nil message to `ProtoDetail` panics. Adding convenience
+APIs for other detail types does not reserve those types.
+
+The HTTP and gRPC renderers include additional details alongside `ErrorInfo`.
+HTTP uses protobuf JSON encoding, including `@type` and well-known types such as
+durations. A request ID supplied by the transport takes precedence over an
+attached `RequestInfo`.
+
+Decoders retain additional details whose protobuf types are registered in the
+process. Import the generated Go package for service-specific details. Unknown
+or malformed details are ignored. Decoded `DebugInfo` is retained but only
+rendered when debug output is enabled. Renderers omit details that cannot be
+encoded in their transport format.

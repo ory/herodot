@@ -25,8 +25,8 @@ import (
 const RequestIDKey = "x-request-id"
 
 // ToStatus returns the status for herodot.From(err): the canonical code,
-// ErrorInfo, CodeInfo for a refined code, RequestInfo and BadRequest, and
-// DebugInfo only if debug is true.
+// ErrorInfo, CodeInfo for a refined code, RequestInfo, BadRequest, additional
+// protobuf details, and DebugInfo only if debug is true.
 // It returns nil if err is nil.
 func ToStatus(ctx context.Context, err error, debug bool) *status.Status {
 	if err == nil {
@@ -60,6 +60,17 @@ func ToStatus(ctx context.Context, err error, debug bool) *status.Status {
 		}
 		details = append(details, br)
 	}
+	for _, detail := range e.ProtoDetails() {
+		if detail.ProtoReflect().Descriptor().FullName() == "google.rpc.DebugInfo" && !debug {
+			continue
+		}
+		if _, ok := detail.(*errdetails.RequestInfo); ok {
+			if md, ok := metadata.FromIncomingContext(ctx); ok && len(md.Get(RequestIDKey)) > 0 && md.Get(RequestIDKey)[0] != "" {
+				continue
+			}
+		}
+		details = append(details, protoadapt.MessageV1Of(detail))
+	}
 	if debug {
 		if info, ok := e.DebugInfo(); ok {
 			for i := range info.StackEntries {
@@ -69,13 +80,15 @@ func ToStatus(ctx context.Context, err error, debug bool) *status.Status {
 		}
 	}
 
-	base := status.New(codes.Code(def.Code().Canonical()), validUTF8(e.Error()))
-	s, wErr := base.WithDetails(details...)
-	if wErr != nil {
-		// Preserve the status even if a detail cannot be serialized.
-		return base
+	result := status.New(codes.Code(def.Code().Canonical()), validUTF8(e.Error()))
+	for _, detail := range details {
+		next, err := result.WithDetails(detail)
+		if err != nil {
+			continue
+		}
+		result = next
 	}
-	return s
+	return result
 }
 
 func validUTF8(s string) string { return strings.ToValidUTF8(s, "\uFFFD") }
@@ -121,9 +134,9 @@ func FromStatus(s *status.Status) (herodot.Error, bool) {
 	}
 
 	var (
-		info       *errdetails.ErrorInfo
-		code       = canonical
-		violations []herodot.Option
+		info    *errdetails.ErrorInfo
+		code    = canonical
+		details []herodot.Option
 	)
 	for _, d := range s.Details() {
 		switch d := d.(type) {
@@ -138,7 +151,11 @@ func FromStatus(s *status.Status) (herodot.Error, bool) {
 			}
 		case *errdetails.BadRequest:
 			for _, v := range d.GetFieldViolations() {
-				violations = append(violations, herodot.Violation(v.GetField(), v.GetDescription()))
+				details = append(details, herodot.Violation(v.GetField(), v.GetDescription()))
+			}
+		default:
+			if message, ok := d.(protoadapt.MessageV2); ok {
+				details = append(details, herodot.ProtoDetail(message))
 			}
 		}
 	}
@@ -154,7 +171,7 @@ func FromStatus(s *status.Status) (herodot.Error, bool) {
 	for k, v := range info.GetMetadata() {
 		opts = append(opts, herodot.Metadata(k, v))
 	}
-	return def.New(append(opts, violations...)...), true
+	return def.New(append(opts, details...)...), true
 }
 
 // FromError decodes the status of an error returned by a gRPC call, also if
