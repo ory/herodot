@@ -130,13 +130,14 @@ err := serviceUnavailable.New(
 ```
 
 `ProtoDetail` also works with `Annotate`. Messages are copied when attached;
-`Error.ProtoDetails()` returns deep copies. Except for `DebugInfo`, these details
-are public response data. Use `Cause` for internal diagnostics and `Violation` for invalid fields. Attached `DebugInfo`
-is rendered only when debug output is enabled, just like cause-derived debug
-information. `BadRequest` can also be attached directly. Only `ErrorInfo` and
-Herodot's `CodeInfo` are reserved because they define the error's identity and
-code; passing either or a nil message to `ProtoDetail` panics. Adding convenience
-APIs for other detail types does not reserve those types.
+`Error.ProtoDetails()` returns deep copies. Except for `DebugInfo`, these
+details are public response data. Use `Cause` for internal diagnostics and
+`Violation` for invalid fields. Attached `DebugInfo` is rendered only when debug
+output is enabled, just like cause-derived debug information. `BadRequest` can
+also be attached directly. Only `ErrorInfo` and Herodot's `CodeInfo` are
+reserved because they define the error's identity and code; passing either or a
+nil message to `ProtoDetail` panics. Adding convenience APIs for other detail
+types does not reserve those types.
 
 The HTTP and gRPC renderers include additional details alongside `ErrorInfo`.
 HTTP uses protobuf JSON encoding, including `@type` and well-known types such as
