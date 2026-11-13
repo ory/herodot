@@ -139,6 +139,16 @@ reserved because they define the error's identity and code; passing either or a
 nil message to `ProtoDetail` panics. Adding convenience APIs for other detail
 types does not reserve those types.
 
+`Violation(field, description)` is a convenience for attaching a `BadRequest`
+with one field violation. Full `BadRequest` messages are retained when decoding
+and forwarding, including reasons and localized messages. Read the complete
+merged `BadRequest` through `ProtoDetails()`. All `BadRequest` messages merge
+into one detail, including messages attached through `ProtoDetail` or decoded
+from either transport. Violations append in attachment order without
+deduplication, and protobuf unknown fields are preserved during merging.
+`ProtoDetails()` returns the merged `BadRequest` first, followed by other
+details in attachment order.
+
 The HTTP and gRPC renderers include additional details alongside `ErrorInfo`.
 HTTP uses protobuf JSON encoding, including `@type` and well-known types such as
 durations. A request ID supplied by the transport takes precedence over an

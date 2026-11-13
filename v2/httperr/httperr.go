@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/anypb"
 
@@ -89,19 +88,6 @@ type RequestInfo struct {
 	RequestID string `json:"requestId"`
 }
 
-// BadRequest is the JSON representation of google.rpc.BadRequest.
-type BadRequest struct {
-	Type            string           `json:"@type"`
-	FieldViolations []FieldViolation `json:"fieldViolations"`
-}
-
-// FieldViolation is the JSON representation of
-// google.rpc.BadRequest.FieldViolation.
-type FieldViolation struct {
-	Field       string `json:"field"`
-	Description string `json:"description"`
-}
-
 // DebugInfo is the JSON representation of google.rpc.DebugInfo.
 type DebugInfo struct {
 	Type         string   `json:"@type"`
@@ -123,18 +109,11 @@ func NewBody(e herodot.Error, o Options) Body {
 	if o.RequestID != "" {
 		details = append(details, RequestInfo{Type: typePrefix + "RequestInfo", RequestID: o.RequestID})
 	}
-	if vs := e.Violations(); len(vs) > 0 {
-		br := BadRequest{Type: typePrefix + "BadRequest", FieldViolations: make([]FieldViolation, len(vs))}
-		for i, v := range vs {
-			br.FieldViolations[i] = FieldViolation(v)
-		}
-		details = append(details, br)
-	}
 	for _, detail := range e.ProtoDetails() {
 		if detail.ProtoReflect().Descriptor().FullName() == "google.rpc.DebugInfo" && !o.Debug {
 			continue
 		}
-		if _, ok := detail.(*errdetails.RequestInfo); ok && o.RequestID != "" {
+		if detail.ProtoReflect().Descriptor().FullName() == "google.rpc.RequestInfo" && o.RequestID != "" {
 			continue
 		}
 		packed, err := anypb.New(detail)

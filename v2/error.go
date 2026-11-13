@@ -10,6 +10,7 @@ import (
 	"slices"
 	"sort"
 
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -24,14 +25,10 @@ type Error struct {
 type errorData struct {
 	def          Definition
 	metadata     map[string]string
-	violations   []FieldViolation
 	cause        error
+	badRequest   *errdetails.BadRequest
 	protoDetails []proto.Message
 }
-
-// FieldViolation describes a request field error. It maps to
-// google.rpc.BadRequest.FieldViolation.
-type FieldViolation struct{ Field, Description string }
 
 var zeroData = &errorData{def: Internal}
 
@@ -52,17 +49,16 @@ func (e Error) Error() string { return e.d().def.message }
 // none.
 func (e Error) Metadata() map[string]string { return maps.Clone(e.d().metadata) }
 
-// Violations returns a copy of the request field violations.
-func (e Error) Violations() []FieldViolation { return slices.Clone(e.d().violations) }
-
 // ProtoDetails returns deep copies of the additional protobuf details.
+// The merged BadRequest, if present, comes first, followed by other details in
+// attachment order.
 func (e Error) ProtoDetails() []proto.Message {
-	if e.d().protoDetails == nil {
-		return nil
+	var details []proto.Message
+	if e.d().badRequest != nil {
+		details = append(details, proto.Clone(e.d().badRequest))
 	}
-	details := make([]proto.Message, len(e.d().protoDetails))
-	for i, d := range e.d().protoDetails {
-		details[i] = proto.Clone(d)
+	for _, d := range e.d().protoDetails {
+		details = append(details, proto.Clone(d))
 	}
 	return details
 }
@@ -99,8 +95,8 @@ func (e Error) Format(s fmt.State, verb rune) {
 			for _, k := range keys {
 				_, _ = fmt.Fprintf(s, "\nmetadata %s=%s", k, d.metadata[k])
 			}
-			for _, v := range d.violations {
-				_, _ = fmt.Fprintf(s, "\nviolation %s: %s", v.Field, v.Description)
+			for _, v := range d.badRequest.GetFieldViolations() {
+				_, _ = fmt.Fprintf(s, "\nviolation %s: %s", v.GetField(), v.GetDescription())
 			}
 			if d.cause != nil {
 				_, _ = fmt.Fprintf(s, "\ncause: %+v", d.cause)

@@ -93,13 +93,6 @@ func decode(body []byte, httpStatus int) (herodot.Error, bool) {
 				info = &d
 			}
 		case "type.googleapis.com/ory.herodot.v1.CodeInfo":
-		case typePrefix + "BadRequest":
-			var d BadRequest
-			if json.Unmarshal(raw, &d) == nil {
-				for _, v := range d.FieldViolations {
-					details = append(details, herodot.Violation(v.Field, v.Description))
-				}
-			}
 		default:
 			var packed anypb.Any
 			if protojson.Unmarshal(raw, &packed) == nil {

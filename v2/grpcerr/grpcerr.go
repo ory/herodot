@@ -53,20 +53,21 @@ func ToStatus(ctx context.Context, err error, debug bool) *status.Status {
 			details = append(details, &errdetails.RequestInfo{RequestId: validUTF8(ids[0])})
 		}
 	}
-	if vs := e.Violations(); len(vs) > 0 {
-		br := &errdetails.BadRequest{FieldViolations: make([]*errdetails.BadRequest_FieldViolation, len(vs))}
-		for i, v := range vs {
-			br.FieldViolations[i] = &errdetails.BadRequest_FieldViolation{Field: validUTF8(v.Field), Description: validUTF8(v.Description)}
-		}
-		details = append(details, br)
-	}
 	for _, detail := range e.ProtoDetails() {
 		if detail.ProtoReflect().Descriptor().FullName() == "google.rpc.DebugInfo" && !debug {
 			continue
 		}
-		if _, ok := detail.(*errdetails.RequestInfo); ok {
+		if detail.ProtoReflect().Descriptor().FullName() == "google.rpc.RequestInfo" {
 			if md, ok := metadata.FromIncomingContext(ctx); ok && len(md.Get(RequestIDKey)) > 0 && md.Get(RequestIDKey)[0] != "" {
 				continue
+			}
+		}
+		if br, ok := detail.(*errdetails.BadRequest); ok {
+			for _, v := range br.FieldViolations {
+				if v != nil {
+					v.Field = validUTF8(v.Field)
+					v.Description = validUTF8(v.Description)
+				}
 			}
 		}
 		details = append(details, protoadapt.MessageV1Of(detail))
@@ -149,13 +150,9 @@ func FromStatus(s *status.Status) (herodot.Error, bool) {
 			if c := herodot.Code(d.GetCode()); c.Canonical() == canonical {
 				code = c
 			}
-		case *errdetails.BadRequest:
-			for _, v := range d.GetFieldViolations() {
-				details = append(details, herodot.Violation(v.GetField(), v.GetDescription()))
-			}
 		default:
-			if message, ok := d.(protoadapt.MessageV2); ok {
-				details = append(details, herodot.ProtoDetail(message))
+			if message, ok := d.(protoadapt.MessageV1); ok {
+				details = append(details, herodot.ProtoDetail(protoadapt.MessageV2Of(message)))
 			}
 		}
 	}
