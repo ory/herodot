@@ -80,7 +80,7 @@ func TestFromStatus(t *testing.T) {
 		assert.Equal(t, herodot.CodeExpired, received.Definition().Code(), "the refinement survives gRPC")
 		assert.Equal(t, "The flow has expired. Start a new flow.", received.Error(), "the received message is kept")
 		assert.Equal(t, map[string]string{"flowId": "1234"}, received.Metadata())
-		assert.Equal(t, []herodot.FieldViolation{{Field: "email", Description: "is required"}}, received.Violations())
+		assert.True(t, proto.Equal(&errdetails.BadRequest{FieldViolations: []*errdetails.BadRequest_FieldViolation{{Field: "email", Description: "is required"}}}, received.ProtoDetails()[0]))
 		assert.Equal(t, s.Err().Error(), received.Unwrap().Error())
 
 		forwarded := grpcerr.ToStatus(context.Background(), fmt.Errorf("forwarding: %w", received), false)

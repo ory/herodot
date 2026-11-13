@@ -3,6 +3,11 @@
 
 package herodot
 
+import (
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
+	"google.golang.org/protobuf/proto"
+)
+
 // Option configures an Error in Definition.New.
 type Option interface {
 	apply(*errorData)
@@ -29,13 +34,6 @@ func (m metadataDetail) apply(d *errorData) {
 }
 func (metadataDetail) detail() {}
 
-type violationDetail FieldViolation
-
-func (v violationDetail) apply(d *errorData) {
-	d.violations = append(d.violations, FieldViolation(v))
-}
-func (violationDetail) detail() {}
-
 // Cause sets the wrapped error. It is internal: transports expose it only as
 // debug output.
 func Cause(err error) Option {
@@ -48,7 +46,38 @@ func Metadata(key, value string) Detail {
 	return metadataDetail{key: key, value: value}
 }
 
-// Violation adds a request field violation.
+// Violation appends a field violation to the error's BadRequest detail.
 func Violation(field, description string) Detail {
-	return violationDetail{Field: field, Description: description}
+	return ProtoDetail(&errdetails.BadRequest{FieldViolations: []*errdetails.BadRequest_FieldViolation{{Field: field, Description: description}}})
+}
+
+type protoDetail struct{ message proto.Message }
+
+func (p protoDetail) apply(d *errorData) {
+	if p.message.ProtoReflect().Descriptor().FullName() == "google.rpc.BadRequest" {
+		if d.badRequest == nil {
+			d.badRequest = &errdetails.BadRequest{}
+		}
+		proto.Merge(d.badRequest, p.message)
+		return
+	}
+	d.protoDetails = append(d.protoDetails, proto.Clone(p.message))
+}
+func (protoDetail) detail() {}
+
+// ProtoDetail adds a protobuf detail and copies its message. It panics for nil
+// messages or the identity and code types managed by Herodot: ErrorInfo and CodeInfo.
+// BadRequest messages merge into one detail, appending complete violations in
+// attachment order without deduplication and preserving unknown fields.
+// DebugInfo is rendered only when debug output is enabled. All other details
+// are public response data and must not contain internal diagnostics.
+func ProtoDetail(message proto.Message) Detail {
+	if message == nil || !message.ProtoReflect().IsValid() {
+		panic("herodot: nil protobuf detail")
+	}
+	switch message.ProtoReflect().Descriptor().FullName() {
+	case "google.rpc.ErrorInfo", "ory.herodot.v1.CodeInfo":
+		panic("herodot: protobuf detail type is managed by Herodot")
+	}
+	return protoDetail{message: proto.Clone(message)}
 }

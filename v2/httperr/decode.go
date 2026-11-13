@@ -10,6 +10,9 @@ import (
 	"io"
 	"net/http"
 
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/anypb"
+
 	"github.com/ory/herodot/v2"
 )
 
@@ -73,8 +76,8 @@ func decode(body []byte, httpStatus int) (herodot.Error, bool) {
 	}
 
 	var (
-		info       *ErrorInfo
-		violations []herodot.Option
+		info    *ErrorInfo
+		details []herodot.Option
 	)
 	for _, raw := range b.Error.Details {
 		var t struct {
@@ -89,11 +92,16 @@ func decode(body []byte, httpStatus int) (herodot.Error, bool) {
 			if info == nil && json.Unmarshal(raw, &d) == nil {
 				info = &d
 			}
-		case typePrefix + "BadRequest":
-			var d BadRequest
-			if json.Unmarshal(raw, &d) == nil {
-				for _, v := range d.FieldViolations {
-					violations = append(violations, herodot.Violation(v.Field, v.Description))
+		case "type.googleapis.com/ory.herodot.v1.CodeInfo":
+		default:
+			var packed anypb.Any
+			if protojson.Unmarshal(raw, &packed) == nil {
+				if message, err := packed.UnmarshalNew(); err == nil {
+					switch message.ProtoReflect().Descriptor().FullName() {
+					case "google.rpc.ErrorInfo", "ory.herodot.v1.CodeInfo":
+					default:
+						details = append(details, herodot.ProtoDetail(message))
+					}
 				}
 			}
 		}
@@ -110,7 +118,7 @@ func decode(body []byte, httpStatus int) (herodot.Error, bool) {
 	for k, v := range info.Metadata {
 		opts = append(opts, herodot.Metadata(k, v))
 	}
-	return def.New(append(opts, violations...)...), true
+	return def.New(append(opts, details...)...), true
 }
 
 // ResponseError is the cause of a decoded Error: the received response.
