@@ -191,7 +191,7 @@ func TestValidation(t *testing.T) {
 		{"message with surrounding whitespace", map[string]string{"a.proto": catalog("a", "a.com",
 			`X = 1 [(ory.herodot.v1.value).reason = {code: NOT_FOUND, message: "Not found. "}];`)}, "single line"},
 		{"metadata key", map[string]string{"a.proto": catalog("a", "a.com",
-			`X = 1 [(ory.herodot.v1.value).reason = {code: NOT_FOUND, message: "Message.", metadata_keys: ["flow_id"]}];`)}, `metadata key "flow_id" is not lowerCamelCase`},
+			`X = 1 [(ory.herodot.v1.value).reason = {code: NOT_FOUND, message: "Message.", metadata_keys: ["flow.id"]}];`)}, `invalid metadata key "flow.id"`},
 		{"duplicate metadata key", map[string]string{"a.proto": catalog("a", "a.com",
 			`X = 1 [(ory.herodot.v1.value).reason = {code: NOT_FOUND, message: "Message.", metadata_keys: ["a", "a"]}];`)}, `duplicate metadata key "a"`},
 		{"duplicate reason across files", map[string]string{
@@ -325,4 +325,25 @@ func TestOptionImport(t *testing.T) {
 	require.Empty(t, response.GetError())
 	require.Len(t, response.File, 1)
 	assert.Contains(t, response.File[0].GetContent(), `herodot.Define("keto.ory.com", "NAMESPACE_NOT_FOUND", herodot.CodeNotFound`)
+}
+
+func TestMetadataKeys(t *testing.T) {
+	t.Parallel()
+	for _, key := range []string{"flow_id", "flowId", "flow-id", "a", "limit_per_request", "http2Status"} {
+		t.Run(key, func(t *testing.T) {
+			t.Parallel()
+			source := catalog("a", "a.com", `X = 1 [(ory.herodot.v1.value).reason = {code: NOT_FOUND, message: "Message.", metadata_keys: ["`+key+`"]}];`)
+			out, err := run(t, "lang=json", false, compile(t, map[string]string{"a.proto": source}, "a.proto")...)
+			require.NoError(t, err)
+			assert.Contains(t, out["a.com.errors.json"], `"`+key+`"`)
+		})
+	}
+	for _, key := range []string{"", "FlowId", "1flow", "_flow", "flow.id", "flow id", "flow/id", "flöw"} {
+		t.Run("invalid="+key, func(t *testing.T) {
+			t.Parallel()
+			source := catalog("a", "a.com", `X = 1 [(ory.herodot.v1.value).reason = {code: NOT_FOUND, message: "Message.", metadata_keys: ["`+key+`"]}];`)
+			_, err := run(t, "lang=json", false, compile(t, map[string]string{"a.proto": source}, "a.proto")...)
+			require.ErrorContains(t, err, "invalid metadata key")
+		})
+	}
 }

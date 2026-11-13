@@ -62,7 +62,7 @@ message ErrorSpec {
   // period, e.g. "The self-service flow has expired. Start a new flow."
   // Values that vary go into metadata, explanations into the comment.
   string message = 2;
-  // The documented ErrorInfo.metadata keys, in lowerCamelCase.
+  // The documented ErrorInfo.metadata keys, matching [a-z][a-zA-Z0-9_-]*.
   repeated string metadata_keys = 3;
 }
 

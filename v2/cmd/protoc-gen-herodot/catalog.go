@@ -22,7 +22,7 @@ import (
 var (
 	domainPattern      = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$`)
 	reasonPattern      = regexp.MustCompile(`^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$`)
-	metadataKeyPattern = regexp.MustCompile(`^[a-z][a-zA-Z0-9]*$`)
+	metadataKeyPattern = regexp.MustCompile(`^[a-z][a-zA-Z0-9_-]*$`)
 )
 
 const maxReasonLength = 63
@@ -157,7 +157,7 @@ func loadReason(domain string, v *protogen.EnumValue, codes *codeTable) (*reason
 	keys := map[string]bool{}
 	for _, k := range spec.GetMetadataKeys() {
 		if !metadataKeyPattern.MatchString(k) {
-			return nil, fmt.Errorf("metadata key %q is not lowerCamelCase", k)
+			return nil, fmt.Errorf("invalid metadata key %q: must match %s", k, metadataKeyPattern)
 		}
 		if keys[k] {
 			return nil, fmt.Errorf("duplicate metadata key %q", k)

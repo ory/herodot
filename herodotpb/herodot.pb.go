@@ -273,7 +273,7 @@ type ErrorSpec struct {
 	// period, e.g. "The self-service flow has expired. Start a new flow."
 	// Values that vary go into metadata, explanations into the comment.
 	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	// The documented ErrorInfo.metadata keys, in lowerCamelCase.
+	// The documented ErrorInfo.metadata keys, matching [a-z][a-zA-Z0-9_-]*.
 	MetadataKeys  []string `protobuf:"bytes,3,rep,name=metadata_keys,json=metadataKeys,proto3" json:"metadata_keys,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
