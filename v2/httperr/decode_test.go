@@ -11,6 +11,9 @@ import (
 	"strings"
 	"testing"
 
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
+	"google.golang.org/protobuf/proto"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -43,7 +46,7 @@ func TestDecode(t *testing.T) {
 		assert.Equal(t, herodot.CodeExpired, received.Definition().Code(), "the refinement survives HTTP")
 		assert.Equal(t, "The flow has expired. Start a new flow.", received.Error(), "the received message is kept")
 		assert.Equal(t, map[string]string{"flowId": "1234"}, received.Metadata())
-		assert.Equal(t, []herodot.FieldViolation{{Field: "email", Description: "is required"}}, received.Violations())
+		assert.True(t, proto.Equal(&errdetails.BadRequest{FieldViolations: []*errdetails.BadRequest_FieldViolation{{Field: "email", Description: "is required"}}}, received.ProtoDetails()[0]))
 
 		var re *httperr.ResponseError
 		require.ErrorAs(t, received, &re)

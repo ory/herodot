@@ -10,6 +10,9 @@ import (
 	"strings"
 	"testing"
 
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
+	"google.golang.org/protobuf/proto"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -67,21 +70,21 @@ func TestNew(t *testing.T) {
 	assert.Equal(t, identityNotFound, e.Definition())
 	assert.Equal(t, "The identity could not be found.", e.Error())
 	assert.Equal(t, map[string]string{"identityId": "1234"}, e.Metadata())
-	assert.Equal(t, []herodot.FieldViolation{{Field: "id", Description: "must exist"}}, e.Violations())
+	assert.True(t, proto.Equal(&errdetails.BadRequest{FieldViolations: []*errdetails.BadRequest_FieldViolation{{Field: "id", Description: "must exist"}}}, e.ProtoDetails()[0]))
 	assert.Same(t, cause, e.Unwrap())
 	assert.ErrorIs(t, e, cause)
 
 	t.Run("case=copies are immutable", func(t *testing.T) {
 		e.Metadata()["identityId"] = "changed"
-		e.Violations()[0].Field = "changed"
+		e.ProtoDetails()[0].(*errdetails.BadRequest).FieldViolations[0].Field = "changed"
 		assert.Equal(t, "1234", e.Metadata()["identityId"])
-		assert.Equal(t, "id", e.Violations()[0].Field)
+		assert.Equal(t, "id", e.ProtoDetails()[0].(*errdetails.BadRequest).FieldViolations[0].Field)
 	})
 
 	t.Run("case=no details", func(t *testing.T) {
 		e := flowExpired.New()
 		assert.Nil(t, e.Metadata())
-		assert.Nil(t, e.Violations())
+		assert.Nil(t, e.ProtoDetails())
 		assert.Nil(t, e.Unwrap())
 	})
 }
@@ -229,7 +232,7 @@ func TestFrom(t *testing.T) {
 		assert.Equal(t, flowExpired, got.Definition())
 		assert.Equal(t, e.Error(), got.Error())
 		assert.Equal(t, map[string]string{"flowId": "outer", "keep": "inner", "returnTo": "/x"}, got.Metadata())
-		assert.Equal(t, []herodot.FieldViolation{{"a", "1"}, {"b", "2"}, {"c", "3"}}, got.Violations())
+		assert.True(t, proto.Equal(&errdetails.BadRequest{FieldViolations: []*errdetails.BadRequest_FieldViolation{{Field: "a", Description: "1"}, {Field: "b", Description: "2"}, {Field: "c", Description: "3"}}}, got.ProtoDetails()[0]))
 		assert.Same(t, below, got.Unwrap())
 
 		assert.Equal(t, map[string]string{"flowId": "1", "keep": "inner"}, e.Metadata(), "the original is unchanged")

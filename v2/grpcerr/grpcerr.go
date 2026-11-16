@@ -25,8 +25,8 @@ import (
 const RequestIDKey = "x-request-id"
 
 // ToStatus returns the status for herodot.From(err): the canonical code,
-// ErrorInfo, CodeInfo for a refined code, RequestInfo and BadRequest, and
-// DebugInfo only if debug is true.
+// ErrorInfo, CodeInfo for a refined code, RequestInfo, BadRequest, additional
+// protobuf details, and DebugInfo only if debug is true.
 // It returns nil if err is nil.
 func ToStatus(ctx context.Context, err error, debug bool) *status.Status {
 	if err == nil {
@@ -53,12 +53,24 @@ func ToStatus(ctx context.Context, err error, debug bool) *status.Status {
 			details = append(details, &errdetails.RequestInfo{RequestId: validUTF8(ids[0])})
 		}
 	}
-	if vs := e.Violations(); len(vs) > 0 {
-		br := &errdetails.BadRequest{FieldViolations: make([]*errdetails.BadRequest_FieldViolation, len(vs))}
-		for i, v := range vs {
-			br.FieldViolations[i] = &errdetails.BadRequest_FieldViolation{Field: validUTF8(v.Field), Description: validUTF8(v.Description)}
+	for _, detail := range e.ProtoDetails() {
+		if detail.ProtoReflect().Descriptor().FullName() == "google.rpc.DebugInfo" && !debug {
+			continue
 		}
-		details = append(details, br)
+		if detail.ProtoReflect().Descriptor().FullName() == "google.rpc.RequestInfo" {
+			if md, ok := metadata.FromIncomingContext(ctx); ok && len(md.Get(RequestIDKey)) > 0 && md.Get(RequestIDKey)[0] != "" {
+				continue
+			}
+		}
+		if br, ok := detail.(*errdetails.BadRequest); ok {
+			for _, v := range br.FieldViolations {
+				if v != nil {
+					v.Field = validUTF8(v.Field)
+					v.Description = validUTF8(v.Description)
+				}
+			}
+		}
+		details = append(details, protoadapt.MessageV1Of(detail))
 	}
 	if debug {
 		if info, ok := e.DebugInfo(); ok {
@@ -69,13 +81,15 @@ func ToStatus(ctx context.Context, err error, debug bool) *status.Status {
 		}
 	}
 
-	base := status.New(codes.Code(def.Code().Canonical()), validUTF8(e.Error()))
-	s, wErr := base.WithDetails(details...)
-	if wErr != nil {
-		// Preserve the status even if a detail cannot be serialized.
-		return base
+	result := status.New(codes.Code(def.Code().Canonical()), validUTF8(e.Error()))
+	for _, detail := range details {
+		next, err := result.WithDetails(detail)
+		if err != nil {
+			continue
+		}
+		result = next
 	}
-	return s
+	return result
 }
 
 func validUTF8(s string) string { return strings.ToValidUTF8(s, "\uFFFD") }
@@ -121,9 +135,9 @@ func FromStatus(s *status.Status) (herodot.Error, bool) {
 	}
 
 	var (
-		info       *errdetails.ErrorInfo
-		code       = canonical
-		violations []herodot.Option
+		info    *errdetails.ErrorInfo
+		code    = canonical
+		details []herodot.Option
 	)
 	for _, d := range s.Details() {
 		switch d := d.(type) {
@@ -136,9 +150,9 @@ func FromStatus(s *status.Status) (herodot.Error, bool) {
 			if c := herodot.Code(d.GetCode()); c.Canonical() == canonical {
 				code = c
 			}
-		case *errdetails.BadRequest:
-			for _, v := range d.GetFieldViolations() {
-				violations = append(violations, herodot.Violation(v.GetField(), v.GetDescription()))
+		default:
+			if message, ok := d.(protoadapt.MessageV1); ok {
+				details = append(details, herodot.ProtoDetail(protoadapt.MessageV2Of(message)))
 			}
 		}
 	}
@@ -154,7 +168,7 @@ func FromStatus(s *status.Status) (herodot.Error, bool) {
 	for k, v := range info.GetMetadata() {
 		opts = append(opts, herodot.Metadata(k, v))
 	}
-	return def.New(append(opts, violations...)...), true
+	return def.New(append(opts, details...)...), true
 }
 
 // FromError decodes the status of an error returned by a gRPC call, also if

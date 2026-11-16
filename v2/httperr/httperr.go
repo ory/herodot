@@ -8,6 +8,9 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/anypb"
+
 	"github.com/ory/herodot/v2"
 )
 
@@ -85,19 +88,6 @@ type RequestInfo struct {
 	RequestID string `json:"requestId"`
 }
 
-// BadRequest is the JSON representation of google.rpc.BadRequest.
-type BadRequest struct {
-	Type            string           `json:"@type"`
-	FieldViolations []FieldViolation `json:"fieldViolations"`
-}
-
-// FieldViolation is the JSON representation of
-// google.rpc.BadRequest.FieldViolation.
-type FieldViolation struct {
-	Field       string `json:"field"`
-	Description string `json:"description"`
-}
-
 // DebugInfo is the JSON representation of google.rpc.DebugInfo.
 type DebugInfo struct {
 	Type         string   `json:"@type"`
@@ -119,12 +109,22 @@ func NewBody(e herodot.Error, o Options) Body {
 	if o.RequestID != "" {
 		details = append(details, RequestInfo{Type: typePrefix + "RequestInfo", RequestID: o.RequestID})
 	}
-	if vs := e.Violations(); len(vs) > 0 {
-		br := BadRequest{Type: typePrefix + "BadRequest", FieldViolations: make([]FieldViolation, len(vs))}
-		for i, v := range vs {
-			br.FieldViolations[i] = FieldViolation(v)
+	for _, detail := range e.ProtoDetails() {
+		if detail.ProtoReflect().Descriptor().FullName() == "google.rpc.DebugInfo" && !o.Debug {
+			continue
 		}
-		details = append(details, br)
+		if detail.ProtoReflect().Descriptor().FullName() == "google.rpc.RequestInfo" && o.RequestID != "" {
+			continue
+		}
+		packed, err := anypb.New(detail)
+		if err != nil {
+			continue
+		}
+		raw, err := protojson.Marshal(packed)
+		if err != nil {
+			continue
+		}
+		details = append(details, json.RawMessage(raw))
 	}
 	if o.Debug {
 		if info, ok := e.DebugInfo(); ok {
@@ -142,8 +142,7 @@ func NewBody(e herodot.Error, o Options) Body {
 func renderAIP(w http.ResponseWriter, _ *http.Request, e herodot.Error, o Options) {
 	b, err := json.Marshal(NewBody(e, o))
 	if err != nil {
-		// Only strings and slices of strings are encoded, so this can't
-		// happen.
+		// Details have already been encoded as valid JSON.
 		panic(err)
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
