@@ -55,10 +55,27 @@ type protoDetail struct{ message proto.Message }
 
 func (p protoDetail) apply(d *errorData) {
 	if p.message.ProtoReflect().Descriptor().FullName() == "google.rpc.BadRequest" {
+		message := p.message
+		normalized := &errdetails.BadRequest{}
+		if message.ProtoReflect().Descriptor() != normalized.ProtoReflect().Descriptor() {
+			// Merge requires identical descriptor objects, even for equivalent
+			// schemas. Wire conversion preserves unknown fields at every level.
+			wire, err := proto.Marshal(message)
+			if err == nil {
+				err = proto.Unmarshal(wire, normalized)
+			}
+			if err != nil {
+				// Keep malformed details for the renderer to handle, just as
+				// for other attached messages, rather than panicking here.
+				d.protoDetails = append(d.protoDetails, proto.Clone(message))
+				return
+			}
+			message = normalized
+		}
 		if d.badRequest == nil {
 			d.badRequest = &errdetails.BadRequest{}
 		}
-		proto.Merge(d.badRequest, p.message)
+		proto.Merge(d.badRequest, message)
 		return
 	}
 	d.protoDetails = append(d.protoDetails, proto.Clone(p.message))

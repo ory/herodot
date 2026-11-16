@@ -9,12 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"google.golang.org/grpc/metadata"
-
-	"github.com/ory/herodot/herodotpb"
-
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/protoadapt"
 	"google.golang.org/protobuf/reflect/protodesc"
@@ -24,6 +22,7 @@ import (
 	"google.golang.org/protobuf/types/dynamicpb"
 	"google.golang.org/protobuf/types/known/durationpb"
 
+	"github.com/ory/herodot/herodotpb"
 	"github.com/ory/herodot/v2"
 	"github.com/ory/herodot/v2/grpcerr"
 	"github.com/ory/herodot/v2/httperr"
@@ -179,7 +178,7 @@ func TestProtoDetailBadRequest(t *testing.T) {
 	require.Len(t, annotated.ProtoDetails(), 1)
 	dynamic := dynamicpb.NewMessage(detail.ProtoReflect().Descriptor())
 	proto.Merge(dynamic, detail)
-	require.True(t, proto.Equal(e.ProtoDetails()[0], herodot.Internal.New(herodot.ProtoDetail(dynamic)).ProtoDetails()[0]))
+	assert.True(t, proto.Equal(e.ProtoDetails()[0], herodot.Internal.New(herodot.ProtoDetail(dynamic)).ProtoDetails()[0]))
 }
 
 func TestProtoDetailDebugAlternateTypeURL(t *testing.T) {
@@ -187,10 +186,10 @@ func TestProtoDetailDebugAlternateTypeURL(t *testing.T) {
 	body := `{"error":{"code":500,"status":"INTERNAL","message":"Internal server error","details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","domain":"ory.com","reason":"INTERNAL"},{"@type":"example.com/google.rpc.DebugInfo","detail":"remote diagnostics"}]}}`
 	decoded, ok := httperr.DecodeBody([]byte(body))
 	require.True(t, ok)
-	require.Len(t, decoded.ProtoDetails(), 1)
+	assert.Len(t, decoded.ProtoDetails(), 1)
 	rendered, err := json.Marshal(httperr.NewBody(decoded, httperr.Options{}))
 	require.NoError(t, err)
-	require.NotContains(t, string(rendered), "remote diagnostics")
+	assert.NotContains(t, string(rendered), "remote diagnostics")
 }
 
 func TestProtoDetailDynamicRequestID(t *testing.T) {
@@ -201,13 +200,13 @@ func TestProtoDetailDynamicRequestID(t *testing.T) {
 	ctx := metadata.NewIncomingContext(t.Context(), metadata.Pairs("x-request-id", "transport"))
 	s := grpcerr.ToStatus(ctx, e, false)
 	require.Len(t, s.Details(), 2)
-	require.Equal(t, "transport", s.Details()[1].(*errdetails.RequestInfo).RequestId)
+	assert.Equal(t, "transport", s.Details()[1].(*errdetails.RequestInfo).RequestId)
 	body, err := json.Marshal(httperr.NewBody(e, httperr.Options{RequestID: "transport"}))
 	require.NoError(t, err)
 	decoded, ok := httperr.DecodeBody(body)
 	require.True(t, ok)
 	require.Len(t, decoded.ProtoDetails(), 1)
-	require.Equal(t, "transport", decoded.ProtoDetails()[0].(*errdetails.RequestInfo).RequestId)
+	assert.Equal(t, "transport", decoded.ProtoDetails()[0].(*errdetails.RequestInfo).RequestId)
 }
 
 // Model a registered message implementing only the protobuf v2 API.
@@ -240,9 +239,9 @@ func (t v2OnlyType) Zero() protoreflect.Message { return t.New() }
 
 func TestProtoDetailV2OnlyGRPC(t *testing.T) {
 	file, err := protodesc.NewFile(&descriptorpb.FileDescriptorProto{
-		Name: proto.String("herodot_test_v2_only.proto"), Package: proto.String("herodot.test"), Syntax: proto.String("proto3"),
-		MessageType: []*descriptorpb.DescriptorProto{{Name: proto.String("V2OnlyDetail"), Field: []*descriptorpb.FieldDescriptorProto{{
-			Name: proto.String("value"), Number: proto.Int32(1),
+		Name: new("herodot_test_v2_only.proto"), Package: new("herodot.test"), Syntax: new("proto3"),
+		MessageType: []*descriptorpb.DescriptorProto{{Name: new("V2OnlyDetail"), Field: []*descriptorpb.FieldDescriptorProto{{
+			Name: new("value"), Number: proto.Int32(1),
 			Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum(),
 		}}}},
 	}, nil)
@@ -262,7 +261,7 @@ func TestProtoDetailV2OnlyGRPC(t *testing.T) {
 	decoded, ok := grpcerr.FromStatus(s)
 	require.True(t, ok)
 	require.Len(t, decoded.ProtoDetails(), 1)
-	require.True(t, proto.Equal(detail.Interface(), decoded.ProtoDetails()[0]))
+	assert.True(t, proto.Equal(detail.Interface(), decoded.ProtoDetails()[0]))
 }
 
 func TestBadRequestMerge(t *testing.T) {
@@ -318,8 +317,56 @@ func TestBadRequestMerge(t *testing.T) {
 	require.NoError(t, err)
 	decodedHTTP, ok := httperr.DecodeBody(raw)
 	require.True(t, ok)
-	require.Len(t, decodedHTTP.ProtoDetails(), 1)
-	require.Len(t, decodedHTTP.ProtoDetails()[0].(*errdetails.BadRequest).FieldViolations, 2)
-	require.Equal(t, "MISSING", decodedHTTP.ProtoDetails()[0].(*errdetails.BadRequest).FieldViolations[0].Reason)
-	require.Len(t, httperr.NewBody(decodedHTTP, httperr.Options{}).Error.Details, 2)
+	assert.Len(t, decodedHTTP.ProtoDetails(), 1)
+	assert.Len(t, decodedHTTP.ProtoDetails()[0].(*errdetails.BadRequest).FieldViolations, 2)
+	assert.Equal(t, "MISSING", decodedHTTP.ProtoDetails()[0].(*errdetails.BadRequest).FieldViolations[0].Reason)
+	assert.Len(t, httperr.NewBody(decodedHTTP, httperr.Options{}).Error.Details, 2)
+}
+
+func TestBadRequestIndependentDescriptor(t *testing.T) {
+	t.Parallel()
+	generated := (&errdetails.BadRequest{}).ProtoReflect().Descriptor()
+	file, err := protodesc.NewFile(protodesc.ToFileDescriptorProto(generated.ParentFile()), protoregistry.GlobalFiles)
+	require.NoError(t, err)
+	descriptor := file.Messages().ByName("BadRequest")
+	require.Equal(t, generated.FullName(), descriptor.FullName())
+	require.False(t, generated == descriptor)
+
+	original := &errdetails.BadRequest{FieldViolations: []*errdetails.BadRequest_FieldViolation{{
+		Field: "name", Description: "required", Reason: "MISSING",
+		LocalizedMessage: &errdetails.LocalizedMessage{Locale: "de", Message: "Name erforderlich"},
+	}}}
+	original.ProtoReflect().SetUnknown([]byte{0x50, 1})
+	original.FieldViolations[0].ProtoReflect().SetUnknown([]byte{0x50, 2})
+	wire, err := proto.Marshal(original)
+	require.NoError(t, err)
+	dynamic := dynamicpb.NewMessage(descriptor)
+	require.NoError(t, proto.Unmarshal(wire, dynamic))
+	option := herodot.ProtoDetail(dynamic)
+
+	for _, tc := range []struct {
+		desc string
+		err  herodot.Error
+	}{{
+		desc: "annotate",
+		err:  herodot.From(herodot.Annotate(herodot.Internal.New(herodot.Violation("email", "required")), option)),
+	}, {
+		desc: "new",
+		err:  herodot.Internal.New(herodot.Violation("email", "required"), option),
+	}} {
+		t.Run(tc.desc, func(t *testing.T) {
+			expected := &errdetails.BadRequest{FieldViolations: []*errdetails.BadRequest_FieldViolation{{Field: "email", Description: "required"}}}
+			proto.Merge(expected, original)
+			assert.Len(t, tc.err.ProtoDetails(), 1)
+			assert.True(t, proto.Equal(expected, tc.err.ProtoDetails()[0]))
+		})
+	}
+
+	// Invalid UTF-8 must not introduce a new panic during attachment.
+	violation := dynamic.Get(descriptor.Fields().ByName("field_violations")).List().Get(0).Message()
+	violation.Set(violation.Descriptor().Fields().ByName("description"), protoreflect.ValueOfString("invalid\xff"))
+	malformed := herodot.Internal.New(herodot.ProtoDetail(dynamic))
+	assert.Len(t, malformed.ProtoDetails(), 1)
+	assert.Len(t, grpcerr.ToStatus(t.Context(), malformed, false).Details(), 1)
+	assert.Len(t, httperr.NewBody(malformed, httperr.Options{}).Error.Details, 1)
 }
