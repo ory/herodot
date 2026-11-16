@@ -4,6 +4,7 @@
 package herodot_test
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"testing"
@@ -238,8 +239,11 @@ func (t v2OnlyType) New() protoreflect.Message {
 func (t v2OnlyType) Zero() protoreflect.Message { return t.New() }
 
 func TestProtoDetailV2OnlyGRPC(t *testing.T) {
+	t.Parallel()
+	// Each invocation owns a distinct registry entry, including with -count > 1.
+	suffix := rand.Text()
 	file, err := protodesc.NewFile(&descriptorpb.FileDescriptorProto{
-		Name: new("herodot_test_v2_only.proto"), Package: new("herodot.test"), Syntax: new("proto3"),
+		Name: new("herodot_test_v2_only_" + suffix + ".proto"), Package: new("herodot.test.run_" + suffix), Syntax: new("proto3"),
 		MessageType: []*descriptorpb.DescriptorProto{{Name: new("V2OnlyDetail"), Field: []*descriptorpb.FieldDescriptorProto{{
 			Name: new("value"), Number: proto.Int32(1),
 			Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum(),
@@ -247,10 +251,7 @@ func TestProtoDetailV2OnlyGRPC(t *testing.T) {
 	}, nil)
 	require.NoError(t, err)
 	kind := v2OnlyType{descriptor: file.Messages().Get(0)}
-	// Permit repeated test runs in the same process.
-	if _, err := protoregistry.GlobalTypes.FindMessageByName(kind.Descriptor().FullName()); err != nil {
-		require.NoError(t, protoregistry.GlobalTypes.RegisterMessage(kind))
-	}
+	require.NoError(t, protoregistry.GlobalTypes.RegisterMessage(kind))
 	detail := kind.New()
 	detail.Set(kind.Descriptor().Fields().ByName("value"), protoreflect.ValueOfString("retained"))
 	e := herodot.Internal.New(herodot.ProtoDetail(detail.Interface()))
